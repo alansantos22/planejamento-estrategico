@@ -44,17 +44,6 @@ export const ALL_STEPS = [
     component: VisionStep
   },
   {
-    id: 'icp',
-    title: 'Cliente Ideal (ICP / Personas)',
-    desc: 'Defina quem é o cliente ideal. Quanto mais específico, melhor o resto do plano.',
-    component: IcpStep,
-    validate: (plan) => {
-      if (!(plan.icp.personas || []).length) return 'Adicione ao menos 1 persona.'
-      if (!plan.icp.personas.some((p) => p.primary)) return 'Marque uma persona como primária.'
-      return null
-    }
-  },
-  {
     id: 'market',
     title: 'Tamanho do Mercado (TAM / SAM / SOM)',
     desc: 'Quanto vale o mercado total, o que você consegue endereçar e o que pretende capturar.',
@@ -105,6 +94,17 @@ export const ALL_STEPS = [
     title: 'Posicionamento + Pricing',
     desc: 'Defina sua mensagem-chave e onde seu preço se posiciona no mercado.',
     component: PricingStep
+  },
+  {
+    id: 'icp',
+    title: 'Cliente Ideal (ICP / Personas)',
+    desc: 'Agora que já mapeamos empresa, SWOT, produto e pricing, podemos definir com precisão quem é o cliente ideal.',
+    component: IcpStep,
+    validate: (plan) => {
+      if (!(plan.icp.personas || []).length) return 'Adicione ao menos 1 persona.'
+      if (!plan.icp.personas.some((p) => p.primary)) return 'Marque uma persona como primária.'
+      return null
+    }
   },
   {
     id: 'canvas',
