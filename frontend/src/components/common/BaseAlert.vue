@@ -19,23 +19,23 @@ defineProps({
   font-size: t.$font-size-sm;
   line-height: t.$line-height-base;
   border-left: 4px solid t.$color-info;
-  background: #eaf3fb;
-  color: #1f4e79;
+  background: t.$color-info-soft;
+  color: t.$color-info-fore;
 
   &.is-warning {
     border-left-color: t.$color-warning;
-    background: #fff8e6;
-    color: #7a5a00;
+    background: t.$color-warning-soft;
+    color: t.$color-warning-fore;
   }
   &.is-danger {
     border-left-color: t.$color-danger;
-    background: #fde9e7;
-    color: #7a1c14;
+    background: t.$color-danger-soft;
+    color: t.$color-danger-fore;
   }
   &.is-success {
     border-left-color: t.$color-success;
-    background: #e6f7ec;
-    color: #14532d;
+    background: t.$color-success-soft;
+    color: t.$color-success-fore;
   }
 }
 </style>

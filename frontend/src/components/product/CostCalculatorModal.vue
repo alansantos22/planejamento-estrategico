@@ -406,7 +406,7 @@ function apply() {
   gap: t.$space-1;
 
   &.is-highlight {
-    background: #fef3e0;
+    background: t.$color-primary-soft;
     border-color: t.$color-primary;
   }
 

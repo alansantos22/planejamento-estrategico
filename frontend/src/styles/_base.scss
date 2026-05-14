@@ -4,27 +4,78 @@
 
 // =========================================================
 //  Reset + estilos globais + CSS variables (tema runtime)
+//
+//  As CSS vars são a fonte da verdade em runtime. Os tokens
+//  SCSS (`$color-bg`, `$color-surface`, etc.) compilam para
+//  `var(--color-*)` — basta sobrescrever no seletor de tema.
 // =========================================================
 
 :root {
-  // ---- Cores expostas como CSS vars para uso em runtime
   --color-primary: #{c.$color-primary};
   --color-primary-hover: #{c.$color-primary-hover};
-  --color-primary-soft: #{c.$color-primary-soft};
   --color-secondary: #{c.$color-secondary};
-
-  --color-bg: #{c.$color-bg};
-  --color-bg-soft: #{c.$color-bg-soft};
-  --color-surface: #{c.$color-surface};
-
-  --color-text: #{c.$color-text};
-  --color-text-light: #{c.$color-text-light};
-  --color-border: #{c.$color-border};
 
   --color-danger: #{c.$color-danger};
   --color-success: #{c.$color-success};
   --color-warning: #{c.$color-warning};
   --color-info: #{c.$color-info};
+
+  // ---- Light (default) ----
+  --color-bg: #{c.$raw-bg-light};
+  --color-bg-soft: #{c.$raw-bg-soft-light};
+  --color-surface: #{c.$raw-surface-light};
+  --color-surface-2: #{c.$raw-surface-2-light};
+  --color-text: #{c.$raw-text-light};
+  --color-text-light: #{c.$raw-text-light-light};
+  --color-border: #{c.$raw-border-light};
+  --color-primary-soft: #{c.$raw-primary-soft-light};
+
+  --color-success-soft: #{c.$raw-success-soft-light};
+  --color-success-fore: #{c.$raw-success-fore-light};
+  --color-warning-soft: #{c.$raw-warning-soft-light};
+  --color-warning-fore: #{c.$raw-warning-fore-light};
+  --color-danger-soft: #{c.$raw-danger-soft-light};
+  --color-danger-fore: #{c.$raw-danger-fore-light};
+  --color-info-soft: #{c.$raw-info-soft-light};
+  --color-info-fore: #{c.$raw-info-fore-light};
+
+  // Sombras (mais sutis no light)
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 30px rgba(211, 84, 0, 0.12);
+
+  // Hover de ícone "perigo" — fundo soft pra contraste
+  --color-danger-soft-hover: #fff5f5;
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --color-bg: #{c.$raw-bg-dark};
+  --color-bg-soft: #{c.$raw-bg-soft-dark};
+  --color-surface: #{c.$raw-surface-dark};
+  --color-surface-2: #{c.$raw-surface-2-dark};
+  --color-text: #{c.$raw-text-dark};
+  --color-text-light: #{c.$raw-text-light-dark};
+  --color-border: #{c.$raw-border-dark};
+  --color-primary-soft: #{c.$raw-primary-soft-dark};
+
+  --color-success-soft: #{c.$raw-success-soft-dark};
+  --color-success-fore: #{c.$raw-success-fore-dark};
+  --color-warning-soft: #{c.$raw-warning-soft-dark};
+  --color-warning-fore: #{c.$raw-warning-fore-dark};
+  --color-danger-soft: #{c.$raw-danger-soft-dark};
+  --color-danger-fore: #{c.$raw-danger-fore-dark};
+  --color-info-soft: #{c.$raw-info-soft-dark};
+  --color-info-fore: #{c.$raw-info-fore-dark};
+
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+
+  --color-danger-soft-hover: #3d1418;
+
+  color-scheme: dark;
 }
 
 * {
@@ -43,6 +94,7 @@ body {
   line-height: f.$line-height-base;
   color: c.$color-text;
   background: c.$color-bg;
+  transition: background-color 0.2s ease, color 0.2s ease;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }

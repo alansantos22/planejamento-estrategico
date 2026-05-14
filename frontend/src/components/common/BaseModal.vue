@@ -47,7 +47,7 @@ function handleOverlay(e) {
 }
 
 .base-modal {
-  background: #fff;
+  background: t.$color-surface;
   border-radius: t.$radius-lg;
   width: 100%;
   max-height: 85vh;
@@ -86,7 +86,7 @@ function handleOverlay(e) {
 
     &:hover {
       color: t.$color-danger;
-      background: #fff5f5;
+      background: var(--color-danger-soft-hover);
     }
   }
 

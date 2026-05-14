@@ -409,7 +409,7 @@ function applyCalculator(result) {
   transition: background 0.15s, border-color 0.15s;
 
   &:hover {
-    background: #fef3e0;
+    background: t.$color-primary-soft;
     border-color: t.$color-primary;
   }
 

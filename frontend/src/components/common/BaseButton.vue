@@ -116,7 +116,7 @@ defineProps({
     line-height: 1;
 
     &:hover:not(:disabled) {
-      background: #fff5f5;
+      background: var(--color-danger-soft-hover);
       border-color: t.$color-danger;
     }
   }

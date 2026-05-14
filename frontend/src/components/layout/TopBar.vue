@@ -1,9 +1,11 @@
 <script setup>
 import { ref } from 'vue'
 import BaseButton from '@/components/common/BaseButton.vue'
+import { useThemeStore } from '@/stores/theme'
 
 const emit = defineEmits(['restart', 'export', 'import'])
 const fileInput = ref(null)
+const theme = useThemeStore()
 
 function onImportClick() {
   fileInput.value?.click()
@@ -28,6 +30,15 @@ function onFileChange(e) {
         <BaseButton variant="link" @click="emit('restart')">Recomeçar</BaseButton>
         <BaseButton variant="link" @click="emit('export')">Exportar</BaseButton>
         <BaseButton variant="link" @click="onImportClick">Importar</BaseButton>
+        <button
+          type="button"
+          class="theme-toggle"
+          :aria-label="theme.isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
+          :title="theme.isDark ? 'Tema claro' : 'Tema escuro'"
+          @click="theme.toggle()"
+        >
+          <span aria-hidden="true">{{ theme.isDark ? '☀' : '🌙' }}</span>
+        </button>
         <input ref="fileInput" type="file" accept="application/json" hidden @change="onFileChange" />
       </nav>
     </div>
@@ -68,7 +79,35 @@ function onFileChange(e) {
 
   &__nav {
     display: flex;
+    align-items: center;
     gap: t.$space-1;
+  }
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-left: t.$space-2;
+  background: transparent;
+  border: 1px solid t.$color-border;
+  border-radius: t.$radius-pill;
+  color: t.$color-text;
+  cursor: pointer;
+  font-size: t.$font-size-md;
+  line-height: 1;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+
+  &:hover {
+    background: t.$color-bg-soft;
+    border-color: t.$color-primary;
+    color: t.$color-primary;
+  }
+
+  &:focus-visible {
+    @include t.focus-ring;
   }
 }
 </style>
