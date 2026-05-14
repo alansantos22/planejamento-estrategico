@@ -1,0 +1,23 @@
+{
+  "name": "planejamento-estrategico-server",
+  "version": "1.1.0",
+  "description": "Backend Fastify com persistência MySQL e agentes de IA (Gemini) para o wizard de planejamento estratégico",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "db:init": "node src/scripts/init-db.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@fastify/rate-limit": "^10.2.1",
+    "@google/genai": "^0.3.0",
+    "dotenv": "^16.4.5",
+    "fastify": "^5.1.0",
+    "mysql2": "^3.11.4"
+  }
+}

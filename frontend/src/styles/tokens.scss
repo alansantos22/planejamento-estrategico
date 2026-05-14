@@ -1,0 +1,21 @@
+// =========================================================
+//  Tokens — reexporta todos os partials num único namespace.
+//
+//  Uso em components:
+//
+//    @use '@/styles/tokens' as t;
+//
+//    .btn {
+//      background: t.$color-primary;
+//      padding: t.$space-3 t.$space-5;
+//      border-radius: t.$radius-md;
+//      @include t.focus-ring;
+//      @include t.respond-down(t.$bp-md) { width: 100%; }
+//    }
+// =========================================================
+
+@forward 'colors';
+@forward 'fonts';
+@forward 'spacing';
+@forward 'breakpoints';
+@forward 'mixins';

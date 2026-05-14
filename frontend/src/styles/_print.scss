@@ -1,0 +1,35 @@
+// =========================================================
+//  Estilos de impressão (gera o PDF do dashboard)
+// =========================================================
+
+@media print {
+  .topbar,
+  .app-footer,
+  .dash-actions,
+  .wizard-actions,
+  .ai-helper-btn,
+  .ai-review-section {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .screen,
+  .wizard-view,
+  .landing-view {
+    display: none;
+  }
+
+  .dashboard-view {
+    display: block;
+    padding: 0;
+  }
+
+  .card,
+  .dash-tile {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+}

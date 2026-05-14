@@ -1,0 +1,48 @@
+// =========================================================
+//  Paleta de cores
+// ---------------------------------------------------------
+//  Use as variáveis SCSS para construção; as CSS vars são
+//  expostas em `_base.scss` (:root) para temas em runtime.
+// =========================================================
+
+$color-primary:        #d35400;
+$color-primary-hover:  #ba4a00;
+$color-primary-soft:   #fff5eb;
+$color-secondary:      #e67e22;
+
+$color-bg:             #f0f2f5;
+$color-bg-soft:        $color-primary-soft;
+$color-surface:        #ffffff;
+
+$color-text:           #34495e;
+$color-text-light:     #7f8c8d;
+$color-border:         #e0e0e0;
+
+$color-danger:         #e74c3c;
+$color-success:        #27ae60;
+$color-warning:        #f39c12;
+$color-info:           #2980b9;
+
+// Badges / alerts — soft + strong
+$color-success-soft:   #d4edda;
+$color-success-fore:   #155724;
+$color-warning-soft:   #fff3cd;
+$color-warning-fore:   #856404;
+$color-danger-soft:    #f8d7da;
+$color-danger-fore:    #721c24;
+$color-info-soft:      #cce5ff;
+$color-info-fore:      #004085;
+
+// Funnel gradient (etapas em ordem)
+$funnel-stages: (
+  $color-primary,
+  #c0530e,
+  #b04e0d,
+  #a0490c,
+  #90440b,
+  $color-success
+);
+
+// Overlays
+$color-overlay:        rgba(0, 0, 0, 0.5);
+$color-focus-ring:     rgba(211, 84, 0, 0.12);

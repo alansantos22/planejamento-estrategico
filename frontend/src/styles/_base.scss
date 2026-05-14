@@ -1,0 +1,110 @@
+@use 'colors' as c;
+@use 'fonts' as f;
+@use 'spacing' as s;
+
+// =========================================================
+//  Reset + estilos globais + CSS variables (tema runtime)
+// =========================================================
+
+:root {
+  // ---- Cores expostas como CSS vars para uso em runtime
+  --color-primary: #{c.$color-primary};
+  --color-primary-hover: #{c.$color-primary-hover};
+  --color-primary-soft: #{c.$color-primary-soft};
+  --color-secondary: #{c.$color-secondary};
+
+  --color-bg: #{c.$color-bg};
+  --color-bg-soft: #{c.$color-bg-soft};
+  --color-surface: #{c.$color-surface};
+
+  --color-text: #{c.$color-text};
+  --color-text-light: #{c.$color-text-light};
+  --color-border: #{c.$color-border};
+
+  --color-danger: #{c.$color-danger};
+  --color-success: #{c.$color-success};
+  --color-warning: #{c.$color-warning};
+  --color-info: #{c.$color-info};
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: f.$font-family-base;
+  font-size: f.$font-size-md;
+  line-height: f.$line-height-base;
+  color: c.$color-text;
+  background: c.$color-bg;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  color: c.$color-text;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: c.$color-primary;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+}
+
+ul,
+ol {
+  margin: 0;
+}
+
+// keyframes globais
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

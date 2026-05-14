@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Wizard gratuito de Planejamento Estratégico para empresas. Crie SWOT, OKRs e Plano de Ação 5W2H em minutos." />
+<title>Planejamento Estratégico — MVP Wizard | MeChame</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">●</span>
+      <span class="brand-text">Planejamento<strong>Estratégico</strong></span>
+    </div>
+    <nav class="topbar-nav">
+      <button class="btn-link" data-action="restart" title="Recomeçar">Recomeçar</button>
+      <button class="btn-link" data-action="export" title="Exportar plano">Exportar</button>
+      <button class="btn-link" data-action="import" title="Importar plano">Importar</button>
+      <button class="btn-link" data-action="settings" title="Configurações (IA backend)">⚙ Config</button>
+      <input type="file" id="importFile" accept="application/json" hidden />
+    </nav>
+  </div>
+</header>
+
+<!-- LANDING -->
+<section id="landing" class="screen active">
+  <div class="container hero">
+    <h1>Construa o <span class="hl">Planejamento Estratégico</span> da sua empresa em minutos</h1>
+    <p class="lead">
+      Wizard guiado que cobre ICP, mercado, concorrência, produto-foco, pricing, funil de vendas, SWOT, OKRs e plano de ação —
+      com cálculos automáticos e <strong>assistente de IA opcional</strong> para sugerir ideias quando você travar.
+    </p>
+
+    <div class="mode-switch card">
+      <div>
+        <h3>Modo Completo</h3>
+        <p class="muted">Inclui Visão, Business Model Canvas, Ishikawa e Métricas CAC/LTV.</p>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="modeFullToggle" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <button class="btn primary lg" id="startBtn">Começar agora →</button>
+
+    <div class="features">
+      <div class="feature"><h4>ICP + Mercado</h4><p>Personas, TAM/SAM/SOM e mapa competitivo.</p></div>
+      <div class="feature"><h4>Produto + Pricing</h4><p>Identifica o produto-foco e a estratégia de preço.</p></div>
+      <div class="feature"><h4>Funil + Forecast</h4><p>Cálculo reverso de leads e projeção de 12 meses.</p></div>
+      <div class="feature"><h4>SWOT + OKRs + 5W2H</h4><p>Diagnóstico, objetivos mensuráveis e plano de ação.</p></div>
+      <div class="feature"><h4>Assistente IA</h4><p>Botão "me dê ideias" em cada etapa (opcional).</p></div>
+      <div class="feature"><h4>Persistência em SQLite</h4><p>Plano salvo no backend local. Exporte JSON ou PDF.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- WIZARD -->
+<section id="wizard" class="screen">
+  <div class="container">
+    <div class="wizard-head">
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <span class="progress-label" id="progressLabel">Passo 1 de N</span>
+      </div>
+      <h2 id="stepTitle">Título</h2>
+      <p class="step-desc muted" id="stepDesc"></p>
+    </div>
+
+    <div id="stepContainer" class="step-container"></div>
+
+    <div class="wizard-actions">
+      <button class="btn ghost" id="prevBtn">← Voltar</button>
+      <button class="btn primary" id="nextBtn">Continuar →</button>
+    </div>
+  </div>
+</section>
+
+<!-- DASHBOARD -->
+<section id="dashboard" class="screen">
+  <div class="container">
+    <div class="dash-head">
+      <h2>Resumo do Plano Estratégico</h2>
+      <div class="dash-actions">
+        <button class="btn ghost" id="backToWizard">← Editar</button>
+        <button class="btn primary" onclick="window.print()">🖨️ Imprimir / PDF</button>
+      </div>
+    </div>
+    <div id="dashboardContent"></div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="container">
+    <p>MVP gratuito • Plano persistido em SQLite no backend local • Feito por <strong>MeChame</strong></p>
+  </div>
+</footer>
+
+<script src="js/storage.js"></script>
+<script src="js/leads.js"></script>
+<script src="js/scoring.js"></script>
+<script src="js/ai-helper.js"></script>
+<script src="js/frameworks.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

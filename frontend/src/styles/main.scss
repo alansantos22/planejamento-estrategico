@@ -1,0 +1,30 @@
+// =========================================================
+//  Entrypoint global — importado uma única vez em main.js
+// =========================================================
+
+@use 'base';
+@use 'components';
+@use 'print';
+
+@use 'colors' as c;
+@use 'fonts' as f;
+@use 'spacing' as s;
+
+// ---- Utilitários ----
+.container {
+  max-width: s.$container-max;
+  margin-inline: auto;
+  padding-inline: s.$container-pad;
+}
+
+.muted {
+  color: c.$color-text-light;
+}
+
+.hl {
+  color: c.$color-primary;
+}
+
+.text-small {
+  font-size: f.$font-size-sm;
+}

@@ -1,0 +1,133 @@
+@use 'sass:map';
+@use 'sass:list';
+@use 'colors' as c;
+@use 'fonts' as f;
+@use 'spacing' as s;
+@use 'breakpoints' as bp;
+
+// =========================================================
+//  Mixins reutilizáveis
+// =========================================================
+
+// --- Responsive helpers (mobile-first) ---
+@mixin respond-down($bp) {
+  @media (max-width: $bp) {
+    @content;
+  }
+}
+
+@mixin respond-up($bp) {
+  @media (min-width: $bp) {
+    @content;
+  }
+}
+
+// --- Container central ---
+@mixin container {
+  max-width: s.$container-max;
+  margin-inline: auto;
+  padding-inline: s.$container-pad;
+}
+
+// --- Flex shortcut ---
+@mixin flex($direction: row, $justify: flex-start, $align: stretch, $gap: 0) {
+  display: flex;
+  flex-direction: $direction;
+  justify-content: $justify;
+  align-items: $align;
+  @if $gap != 0 {
+    gap: $gap;
+  }
+}
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// --- Card / Surface ---
+@mixin surface($pad: s.$space-6) {
+  background: c.$color-surface;
+  border: 1px solid c.$color-border;
+  border-radius: s.$radius-lg;
+  box-shadow: s.$shadow-md;
+  padding: $pad;
+}
+
+// --- Focus ring ---
+@mixin focus-ring {
+  outline: none;
+  border-color: c.$color-primary;
+  box-shadow: 0 0 0 3px c.$color-focus-ring;
+}
+
+// --- Truncate text in one line ---
+@mixin truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// --- Visually hidden but accessible ---
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  border: 0;
+}
+
+// --- Reset list ---
+@mixin reset-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+// --- Reset button ---
+@mixin reset-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+// --- Color helpers (token → CSS var) ---
+@function var-color($name) {
+  @return var(--color-#{$name});
+}
+
+// --- Soft/strong color pair by status name ---
+@mixin status-fill($status: 'info') {
+  @if $status == 'success' {
+    background: c.$color-success-soft;
+    color: c.$color-success-fore;
+  } @else if $status == 'warning' {
+    background: c.$color-warning-soft;
+    color: c.$color-warning-fore;
+  } @else if $status == 'danger' {
+    background: c.$color-danger-soft;
+    color: c.$color-danger-fore;
+  } @else {
+    background: c.$color-info-soft;
+    color: c.$color-info-fore;
+  }
+}
+
+// --- Loading spinner keyframes (consumido por componentes) ---
+@mixin spin($duration: 1s) {
+  animation: spin $duration linear infinite;
+}

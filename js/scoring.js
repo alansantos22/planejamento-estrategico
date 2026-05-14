@@ -1,0 +1,824 @@
+/**
+ * Algoritmos sistêmicos - sem IA, apenas lógica e números
+ */
+const Scoring = (() => {
+
+  // ===== SWOT SCORE =====
+  function itemScore(item) {
+    const i = clamp(Number(item.impact) || 0, 0, 10);
+    const c = clamp(Number(item.confidence) || 0, 0, 10);
+    return (i * c) / 10;
+  }
+
+  function quadrantScore(items) {
+    if (!items || !items.length) return 0;
+    const sum = items.reduce((s, it) => s + itemScore(it), 0);
+    return sum / items.length;
+  }
+
+  function swotProfile(swot) {
+    const s = quadrantScore(swot.strengths);
+    const w = quadrantScore(swot.weaknesses);
+    const o = quadrantScore(swot.opportunities);
+    const t = quadrantScore(swot.threats);
+    const internalNet = s - w;
+    const externalNet = o - t;
+
+    let strategy = '', description = '';
+    if (internalNet >= 0 && externalNet >= 0) {
+      strategy = 'Ofensiva (Crescimento)';
+      description = 'Forças e Oportunidades dominam. Use suas vantagens para capturar o mercado.';
+    } else if (internalNet >= 0 && externalNet < 0) {
+      strategy = 'Defensiva (Manutenção)';
+      description = 'Você é forte, mas o mercado é hostil. Use forças para mitigar ameaças.';
+    } else if (internalNet < 0 && externalNet >= 0) {
+      strategy = 'Reorientação (Reestruturação)';
+      description = 'Mercado bom, mas há fraquezas internas. Corrija-as antes de avançar.';
+    } else {
+      strategy = 'Sobrevivência (Crítica)';
+      description = 'Cenário desafiador. Foco em proteger o core e cortar custos.';
+    }
+    return { scores: { s, w, o, t }, internalNet, externalNet, strategy, description };
+  }
+
+  function topItems(items, n = 3) {
+    return [...(items || [])]
+      .filter(it => (it.text || '').trim())
+      .map(it => ({ ...it, score: itemScore(it) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, n);
+  }
+
+  function buildTOWS(swot) {
+    const S = topItems(swot.strengths);
+    const W = topItems(swot.weaknesses);
+    const O = topItems(swot.opportunities);
+    const T = topItems(swot.threats);
+    const cross = (a, b, template) =>
+      a.flatMap(x => b.map(y => ({
+        text: template(x.text, y.text),
+        score: (x.score + y.score) / 2
+      }))).sort((a, b) => b.score - a.score).slice(0, 4);
+    return {
+      FO: cross(S, O, (s, o) => `Usar "${s}" para capturar "${o}"`),
+      FA: cross(S, T, (s, t) => `Usar "${s}" para mitigar "${t}"`),
+      WO: cross(W, O, (w, o) => `Corrigir "${w}" para aproveitar "${o}"`),
+      WA: cross(W, T, (w, t) => `Reduzir "${w}" para se defender de "${t}"`)
+    };
+  }
+
+  // ===== OKR Validator =====
+  const measurableRegex = /(\d+\s*%|\d+\s*(reais|R\$)|R\$\s*\d|\d+\s*(dias|semanas|meses|trimestre|trimestres|ano|anos)|\d+\s*(clientes|usuarios|usuários|leads|pedidos|vendas|nps)|\d+x|\d+,\d+|\d{2,})/i;
+  function isMeasurable(text) { return !!text && measurableRegex.test(text); }
+  function okrQualityScore(okrs) {
+    if (!okrs || !okrs.length) return 0;
+    let totalKrs = 0, measurable = 0;
+    okrs.forEach(o => (o.krs || []).forEach(kr => {
+      if ((kr.text || '').trim()) { totalKrs++; if (isMeasurable(kr.text)) measurable++; }
+    }));
+    return totalKrs ? (measurable / totalKrs) * 10 : 0;
+  }
+
+  // ===== ICE =====
+  function iceScore(action) {
+    const i = clamp(Number(action.impact) || 0, 0, 10);
+    const c = clamp(Number(action.confidence) || 0, 0, 10);
+    const e = clamp(Number(action.ease) || 0, 0, 10);
+    return (i + c + e) / 3;
+  }
+  function prioritizeActions(actions) {
+    return [...(actions || [])].map(a => ({ ...a, ice: iceScore(a) })).sort((a, b) => b.ice - a.ice);
+  }
+
+  // ===== LTV/CAC =====
+  function ltvCacAnalysis(metrics) {
+    const cac = Number(metrics.cac) || 0;
+    const ltv = Number(metrics.ltv) || 0;
+    if (!cac || !ltv) return { ratio: 0, status: 'sem-dados', label: 'Sem dados', color: 'info' };
+    const ratio = ltv / cac;
+    let status, label, color;
+    if (ratio < 3) { status = 'critico'; label = 'Crítico — você gasta demais para adquirir'; color = 'danger'; }
+    else if (ratio < 5) { status = 'aceitavel'; label = 'Aceitável — mas pode melhorar'; color = 'warning'; }
+    else if (ratio <= 10) { status = 'ideal'; label = 'Ideal — saudável e escalável'; color = 'success'; }
+    else { status = 'subinvestido'; label = 'Subinvestindo — pode acelerar marketing'; color = 'info'; }
+    return { ratio, status, label, color };
+  }
+
+  // ============================================================
+  // ===== NOVOS ALGORITMOS — FASE 1 =====
+  // ============================================================
+
+  // ----- ICP Fit Score -----
+  // Cada persona tem campos chave; calculamos completude + força.
+  function icpFitScore(persona) {
+    if (!persona) return { score: 0, color: 'danger', label: 'Sem dados' };
+    const fields = ['name', 'role', 'companySize', 'pain', 'trigger', 'budget', 'authority', 'channel'];
+    const filled = fields.filter(f => (persona[f] || '').toString().trim()).length;
+    const completeness = (filled / fields.length) * 10;
+
+    // bonus: campos críticos preenchidos com clareza (pain, budget, authority)
+    const critical = ['pain', 'budget', 'authority'].filter(f => (persona[f] || '').toString().trim().length >= 5).length;
+    const criticalBonus = (critical / 3) * 2;
+
+    const score = Math.min(10, completeness * 0.8 + criticalBonus);
+    let color, label;
+    if (score >= 7) { color = 'success'; label = 'ICP bem definido'; }
+    else if (score >= 4) { color = 'warning'; label = 'ICP parcial — refine os campos críticos'; }
+    else { color = 'danger'; label = 'ICP vago — defina dor, orçamento e autoridade'; }
+    return { score: Math.round(score * 10) / 10, color, label };
+  }
+
+  function icpOverallScore(icp) {
+    const personas = (icp && icp.personas) || [];
+    if (!personas.length) return 0;
+    const scores = personas.map(p => icpFitScore(p).score);
+    // ponderar a primária mais
+    const primaryIdx = personas.findIndex(p => p.primary);
+    if (primaryIdx >= 0 && personas.length > 1) {
+      const others = scores.filter((_, i) => i !== primaryIdx);
+      return scores[primaryIdx] * 0.6 + (others.reduce((s, x) => s + x, 0) / others.length) * 0.4;
+    }
+    return scores.reduce((s, x) => s + x, 0) / scores.length;
+  }
+
+  // ----- TAM/SAM/SOM -----
+  function marketAnalysis(market) {
+    const tam = Number(market.tam) || 0;
+    const sam = Number(market.sam) || 0;
+    const som = Number(market.som) || 0;
+    const alerts = [];
+    let score = 0;
+
+    if (!tam || !sam || !som) {
+      return { tam, sam, som, samOfTam: 0, somOfSam: 0, score: 0, alerts: ['Preencha TAM, SAM e SOM'] };
+    }
+    const samOfTam = (sam / tam) * 100;
+    const somOfSam = (som / sam) * 100;
+
+    if (sam > tam) alerts.push('SAM não pode ser maior que TAM');
+    if (som > sam) alerts.push('SOM não pode ser maior que SAM');
+    if (somOfSam > 5) alerts.push(`SOM = ${somOfSam.toFixed(1)}% do SAM — meta agressiva para 1 ano (recomendado ≤ 5%)`);
+    if (samOfTam > 50) alerts.push(`SAM = ${samOfTam.toFixed(1)}% do TAM — verifique se o mercado endereçável é realmente tão amplo`);
+
+    score = 10;
+    if (sam > tam || som > sam) score -= 5;
+    if (somOfSam > 5) score -= 2;
+    if (somOfSam > 10) score -= 2;
+    score = Math.max(0, score);
+
+    return { tam, sam, som, samOfTam, somOfSam, score, alerts };
+  }
+
+  // ----- Matriz Competitiva -----
+  function competitionAnalysis(competition) {
+    const competitors = competition.competitors || [];
+    const criteria = competition.criteria || [];
+    const selfScores = competition.selfScores || {};
+    if (!competitors.length || !criteria.length) {
+      return { differentiationScore: 0, whitespace: [], rankings: [], score: 0 };
+    }
+
+    // diferença média da empresa vs. média dos concorrentes em cada critério
+    const diffs = criteria.map(c => {
+      const compAvg = avg(competitors.map(co => Number(co.scores?.[c]) || 0));
+      const self = Number(selfScores[c]) || 0;
+      return { criterion: c, self, competitorsAvg: compAvg, delta: self - compAvg };
+    });
+
+    const differentiationScore = avg(diffs.map(d => d.delta));
+
+    // "espaço em branco": critérios em que TODOS os concorrentes são fracos (< 3)
+    const whitespace = criteria.filter(c => {
+      const allWeak = competitors.every(co => (Number(co.scores?.[c]) || 0) < 3);
+      return allWeak;
+    });
+
+    // ranking geral
+    const rankings = [
+      { name: 'Você', total: sum(criteria.map(c => Number(selfScores[c]) || 0)) },
+      ...competitors.map(co => ({
+        name: co.name || '(sem nome)',
+        total: sum(criteria.map(c => Number(co.scores?.[c]) || 0))
+      }))
+    ].sort((a, b) => b.total - a.total);
+
+    // score do framework: combina diferenciação + completude
+    let score = 5 + differentiationScore; // -5..+5 → 0..10
+    if (competitors.length >= 3) score += 1;
+    if (whitespace.length) score += 1;
+    score = clamp(score, 0, 10);
+
+    return { differentiationScore, whitespace, rankings, diffs, score };
+  }
+
+  // ----- Produto-foco (80/20) -----
+  function productFocusAnalysis(product) {
+    const offerings = (product.offerings || []).filter(o => (o.name || '').trim());
+    if (!offerings.length) return { focus: null, bleeders: [], stars: [], score: 0 };
+
+    const enriched = offerings.map(o => {
+      const rev = Number(o.revenuePct) || 0;
+      const eff = Number(o.effortPct) || 0;
+      const margin = Number(o.marginPct) || 0;
+      // eficiência: receita gerada por unidade de esforço
+      const efficiency = eff > 0 ? rev / eff : (rev > 0 ? 10 : 0);
+      return { ...o, efficiency, score: efficiency * (1 + margin / 100) };
+    });
+
+    enriched.sort((a, b) => b.score - a.score);
+    const stars = enriched.filter(o => o.efficiency >= 1.2);
+    const bleeders = enriched.filter(o => o.efficiency < 0.7 && (Number(o.effortPct) || 0) >= 15);
+    const focus = enriched[0] || null;
+
+    // score: tem produto-foco claro?
+    let score = 0;
+    if (focus) {
+      score = 5;
+      if (focus.efficiency >= 1.5) score += 2;
+      if (stars.length >= 1) score += 1;
+      if (bleeders.length === 0) score += 2;
+    }
+    return { focus, stars, bleeders, score: clamp(score, 0, 10), enriched };
+  }
+
+  // ----- Pricing Strategy -----
+  function pricingAnalysis(pricing) {
+    const cur = Number(pricing.currentPrice) || 0;
+    const min = Number(pricing.marketMin) || 0;
+    const med = Number(pricing.marketMedian) || 0;
+    const max = Number(pricing.marketMax) || 0;
+
+    if (!cur || !med) return { strategy: '—', position: 0, score: 0, label: 'Defina preço atual e mediana de mercado' };
+
+    const position = ((cur - min) / Math.max(1, max - min)) * 100;
+    let strategy, label, color;
+    if (cur < med * 0.7) { strategy = 'Penetração'; label = 'Preço agressivo — ganhar mercado rápido, margem apertada'; color = 'info'; }
+    else if (cur < med * 1.1) { strategy = 'Competitivo'; label = 'Alinhado com o mercado — diferenciação precisa estar em outra dimensão'; color = 'success'; }
+    else if (cur < med * 1.5) { strategy = 'Premium'; label = 'Acima do mercado — exige valor percebido claro'; color = 'warning'; }
+    else { strategy = 'Skim'; label = 'Muito acima do mercado — segmento de nicho'; color = 'warning'; }
+
+    // score: tem statement + tem preço + faixa de mercado preenchida
+    let score = 4;
+    const st = pricing.statement || {};
+    const stmtFields = ['icp', 'problem', 'product', 'benefit'];
+    score += stmtFields.filter(f => (st[f] || '').trim()).length * 0.75;
+    if (min && max) score += 1;
+    if (pricing.targetMargin) score += 1;
+    return { strategy, label, color, position, score: clamp(score, 0, 10) };
+  }
+
+  // ----- Funil de Vendas (cálculo reverso) -----
+  function funnelAnalysis(funnel) {
+    const stages = funnel.stages || [];
+    const ticket = Number(funnel.avgTicket) || 0;
+    const goal = Number(funnel.monthlyRevenueGoal) || 0;
+
+    if (!stages.length || !ticket || !goal) {
+      return { stages, neededClients: 0, reverseFlow: [], bottleneck: null, score: 0 };
+    }
+
+    const neededClients = Math.ceil(goal / ticket);
+
+    // calcular taxa final acumulada (visitantes → clientes)
+    const rates = stages.slice(0, -1).map(s => (Number(s.conversionToNext) || 0) / 100);
+    const allRatesFilled = rates.every(r => r > 0);
+
+    let reverseFlow = [];
+    if (allRatesFilled) {
+      // partindo do final, multiplicar pelo inverso
+      let needed = neededClients;
+      reverseFlow = [{ stage: stages[stages.length - 1].name, count: needed }];
+      for (let i = stages.length - 2; i >= 0; i--) {
+        needed = Math.ceil(needed / rates[i]);
+        reverseFlow.unshift({ stage: stages[i].name, count: needed });
+      }
+    }
+
+    // gargalo: menor taxa de conversão
+    let bottleneck = null;
+    if (rates.length) {
+      const minRate = Math.min(...rates.filter(r => r > 0));
+      const idx = rates.indexOf(minRate);
+      if (idx >= 0 && minRate > 0) {
+        bottleneck = {
+          stage: `${stages[idx].name} → ${stages[idx + 1].name}`,
+          rate: minRate * 100
+        };
+      }
+    }
+
+    let score = 3;
+    if (ticket) score += 1;
+    if (goal) score += 1;
+    if (allRatesFilled) score += 3;
+    if (funnel.salesCycleDays) score += 1;
+    if ((funnel.channels || []).length) score += 1;
+    return { stages, neededClients, reverseFlow, bottleneck, allRatesFilled, score: clamp(score, 0, 10) };
+  }
+
+  // ----- Forecast 12 meses -----
+  function forecastProjection(state) {
+    const f = state.forecast || {};
+    const funnel = state.funnel || {};
+    const ticket = Number(funnel.avgTicket) || 0;
+    const retention = clamp(Number(f.retentionPct) || 0, 0, 100) / 100;
+    const growth = (Number(f.growthRatePct) || 0) / 100;
+    const months = Math.min(36, Math.max(1, Number(f.months) || 12));
+
+    // base = clientes do último estágio do funil
+    const stages = funnel.stages || [];
+    const lastCount = Number(stages.length ? stages[stages.length - 1].count : 0) || 0;
+
+    if (!ticket || !lastCount) return { months: [], totalRevenue: 0, score: 0 };
+
+    const scenarios = {
+      pessimista: { g: growth * 0.5, r: retention * 0.9 },
+      realista:   { g: growth,        r: retention },
+      otimista:   { g: growth * 1.5,  r: Math.min(1, retention * 1.05) }
+    };
+    const sc = scenarios[f.scenario] || scenarios.realista;
+
+    const points = [];
+    let activeBase = lastCount;
+    let totalRevenue = 0;
+    for (let m = 1; m <= months; m++) {
+      // novos clientes crescem com growth
+      const newClients = Math.round(lastCount * Math.pow(1 + sc.g, m - 1));
+      // base retém
+      activeBase = Math.round(activeBase * sc.r) + newClients;
+      const monthRevenue = activeBase * ticket;
+      totalRevenue += monthRevenue;
+      points.push({ month: m, newClients, activeBase, revenue: monthRevenue });
+    }
+
+    let score = 3;
+    if (Number(f.retentionPct)) score += 3;
+    if (Number(f.growthRatePct) !== undefined && f.growthRatePct !== '') score += 2;
+    if (months >= 12) score += 2;
+    return { months: points, totalRevenue, scenario: f.scenario, score: clamp(score, 0, 10) };
+  }
+
+  // ----- Coerência cruzada -----
+  function coherenceChecks(state) {
+    const alerts = [];
+
+    // ICP B2B/B2C vs canais
+    const personas = state.icp?.personas || [];
+    const segText = (state.canvas?.segments || '').toLowerCase();
+    const isB2B = personas.some(p => /empresa|b2b|gerente|diretor|cto|ceo|cfo/i.test(p.role + ' ' + p.companySize))
+               || /b2b|empresa/.test(segText);
+    const channelsText = (state.canvas?.channels || '').toLowerCase();
+    if (isB2B && /tiktok|instagram\s+orgânico|b2c/.test(channelsText)) {
+      alerts.push({ level: 'warning', msg: 'ICP parece B2B mas canais sugerem público B2C — verifique alinhamento.' });
+    }
+
+    // Meta vs funil
+    const ticket = Number(state.funnel?.avgTicket) || 0;
+    const goal = Number(state.funnel?.monthlyRevenueGoal) || 0;
+    const lastStage = state.funnel?.stages?.[state.funnel?.stages?.length - 1];
+    const currentClients = Number(lastStage?.count) || 0;
+    if (ticket && goal) {
+      const needed = goal / ticket;
+      if (currentClients && needed > currentClients * 3) {
+        alerts.push({ level: 'warning', msg: `Meta exige ~${Math.ceil(needed)} clientes/mês — você está em ${currentClients}. Gap >3x; revise meta ou capacidade.` });
+      }
+    }
+
+    // OKR fala em número mas funil não comporta
+    (state.okrs || []).forEach(o => (o.krs || []).forEach(kr => {
+      const m = (kr.text || '').match(/(\d{2,5})\s*(clientes|usuarios|usuários|leads|vendas)/i);
+      if (m && ticket) {
+        const krCount = Number(m[1]);
+        const lastFunnel = currentClients || 0;
+        if (lastFunnel && krCount > lastFunnel * 5) {
+          alerts.push({ level: 'warning', msg: `KR "${kr.text.slice(0, 60)}..." pede ${krCount}, funil atual entrega ${lastFunnel}.` });
+        }
+      }
+    }));
+
+    // LTV/CAC bom + pricing penetração: contraditório
+    const lc = ltvCacAnalysis(state.metrics || {});
+    const pr = pricingAnalysis(state.pricing || {});
+    if (lc.status === 'ideal' && pr.strategy === 'Penetração') {
+      alerts.push({ level: 'info', msg: 'LTV/CAC ideal + preço de Penetração: você pode estar deixando margem na mesa, considere ajustar preço.' });
+    }
+
+    // Produto-foco não aparece no BMC valueProp
+    const focus = productFocusAnalysis(state.product || {}).focus;
+    if (focus && state.canvas?.valueProp && !state.canvas.valueProp.toLowerCase().includes((focus.name || '').toLowerCase().slice(0, 4))) {
+      alerts.push({ level: 'info', msg: `Produto-foco "${focus.name}" não aparece explicitamente na Proposta de Valor do BMC.` });
+    }
+
+    // ICP sem persona primária
+    if (personas.length && !personas.some(p => p.primary)) {
+      alerts.push({ level: 'warning', msg: 'Você definiu personas mas nenhuma está marcada como primária.' });
+    }
+
+    return alerts;
+  }
+
+  // ===== Score Geral Expandido =====
+  function overallScore(state) {
+    const swotItems = [
+      ...(state.swot.strengths || []), ...(state.swot.weaknesses || []),
+      ...(state.swot.opportunities || []), ...(state.swot.threats || [])
+    ].filter(i => (i.text || '').trim());
+    const swotCompleteness = Math.min(swotItems.length / 8, 1) * 10;
+
+    const okrQuality = okrQualityScore(state.okrs);
+    const okrCount = (state.okrs || []).filter(o => (o.objective || '').trim()).length;
+    const okrCompleteness = Math.min(okrCount / 3, 1) * 10;
+    const okrFinal = (okrQuality * 0.6 + okrCompleteness * 0.4);
+
+    const actionsCount = (state.actions || []).filter(a => (a.what || '').trim()).length;
+    const actionsScore = Math.min(actionsCount / 3, 1) * 10;
+
+    const icpScore = icpOverallScore(state.icp || {});
+    const marketScore = marketAnalysis(state.market || {}).score;
+    const competitionScore = competitionAnalysis(state.competition || {}).score;
+    const productScore = productFocusAnalysis(state.product || {}).score;
+    const pricingScore = pricingAnalysis(state.pricing || {}).score;
+    const funnelScore = funnelAnalysis(state.funnel || {}).score;
+    const forecastScore = forecastProjection(state).score;
+
+    let metricsScore = 0, metricsWeight = 0;
+    if (state.mode === 'completo') {
+      const lc = ltvCacAnalysis(state.metrics || {});
+      if (lc.status !== 'sem-dados') {
+        metricsScore = (lc.status === 'ideal' ? 10 : lc.status === 'aceitavel' ? 7 : lc.status === 'subinvestido' ? 8 : 4);
+        metricsWeight = 0.05;
+      }
+    }
+
+    // Pesos novos
+    const weights = {
+      swot: 0.12,
+      okr: 0.15,
+      actions: 0.10,
+      icp: 0.13,
+      market: 0.08,
+      competition: 0.08,
+      product: 0.10,
+      pricing: 0.08,
+      funnel: 0.10,
+      forecast: 0.06
+    };
+    const totalW = Object.values(weights).reduce((s, x) => s + x, 0);
+    const remaining = 1 - metricsWeight;
+    const norm = remaining / totalW;
+
+    const final =
+      swotCompleteness * weights.swot * norm +
+      okrFinal * weights.okr * norm +
+      actionsScore * weights.actions * norm +
+      icpScore * weights.icp * norm +
+      marketScore * weights.market * norm +
+      competitionScore * weights.competition * norm +
+      productScore * weights.product * norm +
+      pricingScore * weights.pricing * norm +
+      funnelScore * weights.funnel * norm +
+      forecastScore * weights.forecast * norm +
+      metricsScore * metricsWeight;
+
+    let classification;
+    if (final >= 8) classification = 'Excelente';
+    else if (final >= 6) classification = 'Bom';
+    else if (final >= 4) classification = 'Em desenvolvimento';
+    else classification = 'Inicial';
+
+    return {
+      total: Math.round(final * 10) / 10,
+      classification,
+      breakdown: {
+        swot: round1(swotCompleteness),
+        okr: round1(okrFinal),
+        actions: round1(actionsScore),
+        icp: round1(icpScore),
+        market: round1(marketScore),
+        competition: round1(competitionScore),
+        product: round1(productScore),
+        pricing: round1(pricingScore),
+        funnel: round1(funnelScore),
+        forecast: round1(forecastScore),
+        metrics: round1(metricsScore)
+      }
+    };
+  }
+
+  // ============================================================
+  // ===== FASE C — Strategic Health Score =====
+  // ============================================================
+  //
+  // Score 0–100 determinístico, classificado A+/A/B/C/D.
+  // Inspirado em Balanced Scorecard (Kaplan & Norton, HBR 1992),
+  // EOS Company Checkup (Wickman), Strategic Readiness Score (K&N 2004),
+  // PIMS (Buzzell & Gale 1987) e VRIO (Barney 1991).
+  //
+  // Cinco dimensões em 0–100, ponderadas; penalidades aplicadas ao total.
+
+  function _filled(v) { return !!(v && String(v).trim()); }
+
+  // 0–100
+  function clarezaDim(state) {
+    const v = state.vision || {};
+    const visionFields = ['purpose', 'core', 'vision3to5', 'bigDream'];
+    const visionFilled = visionFields.filter(k => _filled(v[k])).length;
+    const visionPts = (visionFilled / visionFields.length) * 40;
+
+    const st = (state.pricing || {}).statement || {};
+    const stmtFields = ['icp', 'problem', 'product', 'benefit', 'competitor', 'reason'];
+    const stmtFilled = stmtFields.filter(k => _filled(st[k])).length;
+    const stmtPts = (stmtFilled / stmtFields.length) * 40;
+
+    const focusPts = _filled((state.product || {}).focusReasoning) ? 20 : 0;
+
+    return clamp(visionPts + stmtPts + focusPts, 0, 100);
+  }
+
+  // 0–100
+  function mercadoDim(state) {
+    const icp10 = icpOverallScore(state.icp || {}); // 0–10
+    const icpPts = (icp10 / 10) * 40;
+
+    const m = marketAnalysis(state.market || {});
+    let mktPts = 0;
+    if (m.tam && m.sam && m.som && !(m.sam > m.tam) && !(m.som > m.sam)) {
+      mktPts = 20;
+      if (m.somOfSam > 5) mktPts -= 10;
+      if (m.somOfSam > 10) mktPts -= 5;
+    }
+
+    const comp = state.competition || {};
+    const competitors = comp.competitors || [];
+    const criteria = comp.criteria || [];
+    let compPts = 0;
+    if (competitors.length >= 3 && criteria.length >= 4) compPts = 40;
+    else if (competitors.length >= 2 && criteria.length >= 3) compPts = 25;
+    else if (competitors.length >= 1) compPts = 10;
+
+    return clamp(icpPts + Math.max(0, mktPts) + compPts, 0, 100);
+  }
+
+  // 0–100
+  function execucaoDim(state) {
+    const okrs = state.okrs || [];
+    let totalKrs = 0, measurable = 0;
+    okrs.forEach(o => (o.krs || []).forEach(kr => {
+      if (_filled(kr.text)) { totalKrs++; if (isMeasurable(kr.text)) measurable++; }
+    }));
+    const okrPts = totalKrs ? (measurable / totalKrs) * 40 : 0;
+
+    const actions = (state.actions || []).filter(a => _filled(a.what));
+    const withDeadline = actions.filter(a => _filled(a.when)).length;
+    const deadlinePts = actions.length ? (withDeadline / actions.length) * 40 : 0;
+
+    const countPts = actions.length >= 3 ? 20 : (actions.length / 3) * 20;
+
+    return clamp(okrPts + deadlinePts + countPts, 0, 100);
+  }
+
+  // 0–100
+  function comercialDim(state) {
+    const lc = ltvCacAnalysis(state.metrics || {});
+    let lcPts = 0;
+    if (lc.status === 'ideal') lcPts = 40;
+    else if (lc.status === 'subinvestido') lcPts = 32;
+    else if (lc.status === 'aceitavel') lcPts = 24;
+    else if (lc.status === 'critico') lcPts = 8;
+    else lcPts = 20; // sem-dados: crédito parcial pra não punir modo enxuto vazio
+
+    const pr = pricingAnalysis(state.pricing || {});
+    let pricingPts = 0;
+    if (pr.strategy && pr.strategy !== '—') {
+      pricingPts = 15;
+      if (pr.score >= 7) pricingPts = 30;
+      else if (pr.score >= 5) pricingPts = 22;
+    }
+
+    const funAn = funnelAnalysis(state.funnel || {});
+    const funnel = state.funnel || {};
+    const stages = funnel.stages || [];
+    const currentTop = Number(stages[0]?.count) || 0;
+    let funnelPts = 0;
+    if (funAn.allRatesFilled && funAn.reverseFlow.length) {
+      const leadsNecessarios = funAn.reverseFlow[0].count;
+      if (currentTop && leadsNecessarios <= currentTop * 1.5) funnelPts = 30;
+      else if (currentTop && leadsNecessarios <= currentTop * 3) funnelPts = 18;
+      else funnelPts = 8;
+    } else if (funAn.neededClients) {
+      funnelPts = 10;
+    }
+
+    return clamp(lcPts + pricingPts + funnelPts, 0, 100);
+  }
+
+  // 0–100
+  function diferenciacaoDim(state) {
+    const compAn = competitionAnalysis(state.competition || {});
+    if (!compAn.diffs || !compAn.diffs.length) return 0;
+    // differentiationScore vem em escala -5..+5 → normaliza pra 0..100
+    const norm = ((compAn.differentiationScore + 5) / 10) * 100;
+    let bonus = 0;
+    if (compAn.whitespace && compAn.whitespace.length) bonus += 5;
+    return clamp(norm + bonus, 0, 100);
+  }
+
+  function strategicHealthScore(state) {
+    const dims = {
+      clareza: clarezaDim(state),
+      mercado: mercadoDim(state),
+      execucao: execucaoDim(state),
+      comercial: comercialDim(state),
+      diferenciacao: diferenciacaoDim(state)
+    };
+
+    const weights = {
+      clareza: 0.20,
+      mercado: 0.25,
+      execucao: 0.20,
+      comercial: 0.25,
+      diferenciacao: 0.10
+    };
+
+    const weighted =
+      dims.clareza * weights.clareza +
+      dims.mercado * weights.mercado +
+      dims.execucao * weights.execucao +
+      dims.comercial * weights.comercial +
+      dims.diferenciacao * weights.diferenciacao;
+
+    // ===== Penalidades =====
+    const penalties = [];
+
+    // -5 por seção obrigatória vazia
+    const visionAnyFilled = ['purpose', 'core', 'vision3to5', 'bigDream']
+      .some(k => _filled((state.vision || {})[k]));
+    if (!visionAnyFilled) penalties.push({ reason: 'Visão estratégica vazia', points: -5 });
+
+    const personas = (state.icp && state.icp.personas) || [];
+    if (!personas.length) {
+      penalties.push({ reason: 'ICP sem nenhuma persona definida', points: -5 });
+    } else if (!personas.some(p => p.primary)) {
+      penalties.push({ reason: 'ICP sem persona primária marcada', points: -5 });
+    }
+
+    const swotCount = ['strengths', 'weaknesses', 'opportunities', 'threats']
+      .reduce((n, k) => n + (((state.swot || {})[k] || []).filter(it => _filled(it.text)).length), 0);
+    if (swotCount === 0) penalties.push({ reason: 'SWOT vazia', points: -5 });
+
+    const okrsWithObj = (state.okrs || []).filter(o => _filled(o.objective)).length;
+    if (okrsWithObj === 0) penalties.push({ reason: 'OKRs sem objetivo definido', points: -5 });
+
+    const actionsCount = (state.actions || []).filter(a => _filled(a.what)).length;
+    if (actionsCount === 0) penalties.push({ reason: 'Plano de ação 5W2H vazio', points: -5 });
+
+    // -3 por alerta de coerência (warning ou danger)
+    const alerts = coherenceChecks(state) || [];
+    alerts.forEach(a => {
+      if (a.level === 'warning' || a.level === 'danger') {
+        penalties.push({ reason: `Coerência: ${a.msg}`, points: -3 });
+      }
+    });
+
+    // -2 se SOM > 5% do SAM em 12 meses
+    const mkt = marketAnalysis(state.market || {});
+    if (mkt.somOfSam > 5) {
+      penalties.push({ reason: `SOM = ${mkt.somOfSam.toFixed(1)}% do SAM (recomendado ≤ 5%)`, points: -2 });
+    }
+
+    const penaltyTotal = penalties.reduce((s, p) => s + p.points, 0);
+    const total = clamp(Math.round(weighted + penaltyTotal), 0, 100);
+
+    // ===== Classificação =====
+    let grade, gradeLabel, gradeColor;
+    if (total >= 90) { grade = 'A+'; gradeLabel = 'Plano sólido e coerente'; gradeColor = 'success'; }
+    else if (total >= 80) { grade = 'A'; gradeLabel = 'Bom, com 1–2 pontos de atenção'; gradeColor = 'success'; }
+    else if (total >= 65) { grade = 'B'; gradeLabel = 'Funcional, falta refino'; gradeColor = 'warning'; }
+    else if (total >= 50) { grade = 'C'; gradeLabel = 'Lacunas significativas'; gradeColor = 'warning'; }
+    else { grade = 'D'; gradeLabel = 'Plano incipiente ou inconsistente'; gradeColor = 'danger'; }
+
+    // ===== Explicações (top 3 pontos a melhorar) =====
+    const explanations = [];
+    const dimOrder = [
+      { key: 'comercial',     name: 'Saúde Comercial',         msg: dimExplainComercial(state) },
+      { key: 'mercado',       name: 'Conhecimento de Mercado', msg: dimExplainMercado(state) },
+      { key: 'execucao',      name: 'Capacidade de Execução',  msg: dimExplainExecucao(state) },
+      { key: 'clareza',       name: 'Clareza Estratégica',     msg: dimExplainClareza(state) },
+      { key: 'diferenciacao', name: 'Diferenciação Competitiva', msg: dimExplainDiferenciacao(state) }
+    ];
+    dimOrder
+      .filter(d => dims[d.key] < 70 && d.msg)
+      .sort((a, b) => dims[a.key] - dims[b.key])
+      .slice(0, 3)
+      .forEach(d => explanations.push(`${d.name} (${Math.round(dims[d.key])}/100) — ${d.msg}`));
+
+    return {
+      total,
+      grade,
+      gradeLabel,
+      gradeColor,
+      breakdown: {
+        clareza: Math.round(dims.clareza),
+        mercado: Math.round(dims.mercado),
+        execucao: Math.round(dims.execucao),
+        comercial: Math.round(dims.comercial),
+        diferenciacao: Math.round(dims.diferenciacao)
+      },
+      penalties,
+      explanations
+    };
+  }
+
+  // Mensagens explicativas por dimensão (apontam o gargalo principal)
+  function dimExplainClareza(state) {
+    const v = state.vision || {};
+    if (!['purpose', 'core', 'vision3to5', 'bigDream'].some(k => _filled(v[k]))) {
+      return 'preencha propósito, valores e visão de 3–5 anos para ancorar o plano.';
+    }
+    const st = (state.pricing || {}).statement || {};
+    if (!['icp', 'problem', 'product', 'benefit'].every(k => _filled(st[k]))) {
+      return 'complete o statement de posicionamento (para quem, problema, produto, benefício).';
+    }
+    if (!_filled((state.product || {}).focusReasoning)) {
+      return 'justifique qual é o produto-foco e por quê (campo "Justificativa" em Produto).';
+    }
+    return 'detalhe propósito, posicionamento e foco para deixar a estratégia inequívoca.';
+  }
+
+  function dimExplainMercado(state) {
+    const personas = (state.icp && state.icp.personas) || [];
+    if (!personas.length) return 'defina ao menos uma persona com dor, orçamento e autoridade.';
+    const m = marketAnalysis(state.market || {});
+    if (!m.tam || !m.sam || !m.som) return 'preencha TAM, SAM e SOM para dimensionar o mercado.';
+    const comp = state.competition || {};
+    if ((comp.competitors || []).length < 3) return 'mapeie pelo menos 3 concorrentes na matriz competitiva.';
+    if ((comp.criteria || []).length < 4) return 'use ao menos 4 critérios para comparar concorrentes.';
+    return 'reforce ICP, sizing de mercado e matriz competitiva.';
+  }
+
+  function dimExplainExecucao(state) {
+    const okrs = state.okrs || [];
+    let totalKrs = 0, measurable = 0;
+    okrs.forEach(o => (o.krs || []).forEach(kr => {
+      if (_filled(kr.text)) { totalKrs++; if (isMeasurable(kr.text)) measurable++; }
+    }));
+    if (totalKrs === 0) return 'defina OKRs com resultados-chave mensuráveis (número, %, prazo).';
+    if (measurable / totalKrs < 0.6) return 'torne os KRs mensuráveis — inclua números, % ou prazos.';
+
+    const actions = (state.actions || []).filter(a => _filled(a.what));
+    if (actions.length < 3) return 'cadastre pelo menos 3 ações 5W2H prioritárias.';
+    const withDeadline = actions.filter(a => _filled(a.when)).length;
+    if (withDeadline / actions.length < 0.7) return 'defina prazos (campo "Quando") nas ações pendentes.';
+    return 'amarre KRs e ações com prazos claros para garantir execução.';
+  }
+
+  function dimExplainComercial(state) {
+    const lc = ltvCacAnalysis(state.metrics || {});
+    if (lc.status === 'critico') return `LTV/CAC em ${lc.ratio.toFixed(2)}x — abaixo de 3:1; reduza CAC ou aumente retenção.`;
+    if (lc.status === 'sem-dados' && state.mode === 'completo') return 'preencha CAC, LTV e churn para validar a equação econômica.';
+
+    const pr = pricingAnalysis(state.pricing || {});
+    if (!pr.strategy || pr.strategy === '—') return 'defina preço atual e mediana de mercado para posicionar pricing.';
+
+    const funAn = funnelAnalysis(state.funnel || {});
+    if (!funAn.allRatesFilled) return 'complete as taxas de conversão entre estágios do funil.';
+    const currentTop = Number((state.funnel?.stages || [])[0]?.count) || 0;
+    const leadsNecessarios = funAn.reverseFlow[0]?.count || 0;
+    if (currentTop && leadsNecessarios > currentTop * 1.5) {
+      return `funil reverso exige ${leadsNecessarios} entradas, você tem ${currentTop} — gap grande na meta.`;
+    }
+    return 'refine LTV/CAC, pricing e viabilidade do funil para sustentar a meta.';
+  }
+
+  function dimExplainDiferenciacao(state) {
+    const compAn = competitionAnalysis(state.competition || {});
+    if (!compAn.diffs || !compAn.diffs.length) return 'preencha a matriz competitiva (concorrentes e critérios) para medir diferenciação.';
+    if (compAn.differentiationScore < 0) return 'você está atrás da média dos concorrentes — encontre eixos onde liderar.';
+    return 'reforce critérios em que você já se destaca e explore espaços em branco no mercado.';
+  }
+
+  // ===== Helpers =====
+  function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+  function avg(arr) { return arr.length ? arr.reduce((s, x) => s + x, 0) / arr.length : 0; }
+  function sum(arr) { return arr.reduce((s, x) => s + x, 0); }
+  function round1(n) { return Math.round((n || 0) * 10) / 10; }
+
+  return {
+    // legados
+    itemScore, quadrantScore, swotProfile, buildTOWS, topItems,
+    isMeasurable, okrQualityScore,
+    iceScore, prioritizeActions,
+    ltvCacAnalysis, overallScore,
+    // novos (Fase 1)
+    icpFitScore, icpOverallScore,
+    marketAnalysis,
+    competitionAnalysis,
+    productFocusAnalysis,
+    pricingAnalysis,
+    funnelAnalysis,
+    forecastProjection,
+    coherenceChecks,
+    // Fase C
+    strategicHealthScore
+  };
+})();
