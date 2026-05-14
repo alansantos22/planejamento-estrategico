@@ -52,10 +52,15 @@ const GLOBAL_GUARDRAILS = `
 6. Responda SEMPRE no formato JSON pedido na tarefa. Nada de texto adicional fora do JSON.
 7. ESTILO DE ESCRITA: nunca use travessão (—) nem en-dash (–) em nenhum texto da resposta. Use vírgula, dois pontos, ponto e vírgula, parênteses ou ponto final para separar ideias. Escreva como um consultor humano brasileiro, em português direto e natural, sem maneirismos típicos de IA.`;
 
-export async function callAgent({ model, system, user, maxTokens = 2048, json = false, temperature }) {
+export async function callAgent({ model, system, user, maxTokens = 2048, json = false, temperature, thinkingBudget = 0 }) {
   const config = {
     systemInstruction: (system || '') + GLOBAL_GUARDRAILS,
-    maxOutputTokens: maxTokens
+    maxOutputTokens: maxTokens,
+    // Gemini 2.5 Flash ativa "thinking" por padrão e os pensamentos consomem o
+    // mesmo budget de maxOutputTokens — facilmente devorando 90%+ e cortando o
+    // JSON final. Para agentes de geração estruturada não precisamos de CoT
+    // extensa; desligamos por padrão. Override via thinkingBudget no agente.
+    thinkingConfig: { thinkingBudget }
   };
   if (json) config.responseMimeType = 'application/json';
   if (temperature !== undefined) config.temperature = temperature;

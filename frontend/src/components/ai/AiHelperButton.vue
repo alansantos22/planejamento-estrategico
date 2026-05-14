@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { Bot } from 'lucide-vue-next'
 import BaseButton from '@/components/common/BaseButton.vue'
 import { usePlanStore } from '@/stores/plan'
 import { useAiAgent } from '@/composables/useAiAgent'
@@ -19,6 +20,12 @@ onMounted(async () => {
 })
 
 const enabled = computed(() => planStore.aiAssistantEnabled)
+
+// Já foi aplicado neste plano — esconde o botão para evitar repetição.
+const alreadyApplied = computed(() => {
+  const list = planStore.plan?.ai?.appliedAgents || []
+  return list.includes(props.agent)
+})
 
 // Cota esgotada SÓ para o agente do relatório final (do backend).
 const quotaExhausted = computed(() => {
@@ -50,7 +57,7 @@ function onClick() {
 
 <template>
   <BaseButton
-    v-if="enabled"
+    v-if="enabled && !alreadyApplied"
     variant="ai"
     size="sm"
     :disabled="disabled"
@@ -59,7 +66,7 @@ function onClick() {
     :class="{ 'is-faded': disabled }"
     @click="onClick"
   >
-    <span>🤖</span>
+    <Bot :size="16" />
     <span>{{ displayLabel }}</span>
   </BaseButton>
 </template>

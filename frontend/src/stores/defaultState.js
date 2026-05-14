@@ -14,7 +14,7 @@ export function defaultState() {
     mode: 'enxuto',
     currentStep: 0,
 
-    company: { name: '', segment: '', size: '', revenue: '', age: '', region: '' },
+    company: { name: '', segment: '', size: '', employees: '', revenue: '', age: '', region: '' },
 
     vision: { purpose: '', core: '', vision3to5: '', bigDream: '' },
 
@@ -100,7 +100,8 @@ export function defaultState() {
     ai: {
       backendUrl: 'http://localhost:3001',
       assistantEnabled: false,
-      cache: {}
+      cache: {},
+      appliedAgents: []
     }
   }
 }

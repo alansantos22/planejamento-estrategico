@@ -59,7 +59,7 @@ export function useAiAgent() {
     const payload = buildPayload(agentName, planStore.plan)
     const cacheKey = payloadCacheKey(agentName, payload)
     const cached = planStore.getCachedAgentResult(cacheKey)
-    if (cached) {
+    if (cached && !cached.error) {
       uiStore.openModal({ type: 'ai-result', agentName, result: cached, onApply: () => doApply(agentName, cached) })
       return
     }
@@ -68,7 +68,7 @@ export function useAiAgent() {
     uiStore.openModal({ type: 'ai-loading', agentName })
     try {
       const result = await callAgent(backend, agentName, payload)
-      planStore.cacheAgentResult(cacheKey, result)
+      if (!result?.error) planStore.cacheAgentResult(cacheKey, result)
       uiStore.openModal({
         type: 'ai-result',
         agentName,
@@ -92,6 +92,11 @@ export function useAiAgent() {
 
   function doApply(agentName, result) {
     applySuggestions(agentName, result, planStore.plan)
+    planStore.plan.ai = planStore.plan.ai || {}
+    planStore.plan.ai.appliedAgents = planStore.plan.ai.appliedAgents || []
+    if (!planStore.plan.ai.appliedAgents.includes(agentName)) {
+      planStore.plan.ai.appliedAgents.push(agentName)
+    }
     planStore.save()
     uiStore.closeModal()
   }

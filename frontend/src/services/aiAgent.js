@@ -6,6 +6,24 @@
  *   que cada agente precisa.
  */
 
+export const AGENT_LABELS = {
+  personaDetector: 'Sugerir personas',
+  idealPersonaCoach: 'Avaliar personas',
+  swotDetector: 'Sugerir SWOT',
+  problemDetector: 'Detectar problemas',
+  competitorResearcher: 'Pesquisar concorrentes',
+  productIdeaGenerator: 'Gerar ideias de produto',
+  pricingBenchmark: 'Benchmark de preço',
+  marketSizer: 'Estimar TAM / SAM / SOM',
+  salesFunnelArchitect: 'Modelar funil de vendas',
+  insightsCoach: 'Relatório final',
+  idealCustomerFinder: 'Propor cliente ideal'
+}
+
+export function agentLabel(name) {
+  return AGENT_LABELS[name] || name
+}
+
 function hashPayload(str) {
   let h = 0
   for (let i = 0; i < str.length; i++) {
@@ -207,5 +225,16 @@ export function applySuggestions(agentName, result, state) {
         })
       )
       break
+    case 'marketSizer': {
+      const raw = result.raw || {}
+      state.market = state.market || {}
+      if (raw.tam != null) state.market.tam = Math.round(Number(raw.tam) || 0)
+      if (raw.sam != null) state.market.sam = Math.round(Number(raw.sam) || 0)
+      if (raw.som != null) state.market.som = Math.round(Number(raw.som) || 0)
+      const notes = [raw.methodology, raw.sources?.length ? `Fontes: ${raw.sources.join(', ')}` : null]
+        .filter(Boolean).join('\n')
+      if (notes) state.market.notes = notes
+      break
+    }
   }
 }

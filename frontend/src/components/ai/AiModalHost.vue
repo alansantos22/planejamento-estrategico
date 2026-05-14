@@ -1,10 +1,13 @@
 <script setup>
 import { computed } from 'vue'
+import { Bot, User, Wrench, AlertTriangle } from 'lucide-vue-next'
 import BaseModal from '@/components/common/BaseModal.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseAlert from '@/components/common/BaseAlert.vue'
 import Spinner from '@/components/common/Spinner.vue'
 import { useUiStore } from '@/stores/ui'
+import { agentLabel } from '@/services/aiAgent'
+import { formatMoney } from '@/lib/formatters'
 
 const uiStore = useUiStore()
 const modal = computed(() => uiStore.modal)
@@ -18,9 +21,9 @@ function suggestionText(s) {
 <template>
   <BaseModal
     v-if="modal && modal.type === 'ai-loading'"
-    :title="`🤖 ${modal.agentName}`"
     @close="uiStore.closeModal"
   >
+    <template #header><h3 class="ai-modal-title"><Bot :size="20" /> {{ agentLabel(modal.agentName) }}</h3></template>
     <div class="ai-loading">
       <Spinner />
       <p>Consultando o assistente <strong>{{ modal.agentName }}</strong>…</p>
@@ -30,16 +33,36 @@ function suggestionText(s) {
 
   <BaseModal
     v-else-if="modal && modal.type === 'ai-result'"
-    :title="`🤖 ${modal.agentName}`"
     @close="uiStore.closeModal"
   >
+    <template #header><h3 class="ai-modal-title"><Bot :size="20" /> {{ agentLabel(modal.agentName) }}</h3></template>
     <BaseAlert v-if="modal.result?.error" variant="danger">
-      {{ modal.result.error }}
+      <div>{{ modal.result.error }}</div>
+      <details v-if="modal.result?.text || modal.result?.message" class="ai-debug">
+        <summary>Ver detalhes técnicos</summary>
+        <pre>{{ modal.result.message || modal.result.text }}</pre>
+      </details>
     </BaseAlert>
 
     <template v-else>
-      <template v-if="Array.isArray(modal.result?.idealCustomers) && modal.result.idealCustomers.length">
-        <h4 class="ai-section">👤 Clientes ideais propostos</h4>
+      <template v-if="modal.agentName === 'marketSizer' && modal.result?.raw">
+        <div class="market-grid">
+          <div class="market-cell"><span class="muted">TAM</span><strong>{{ formatMoney(modal.result.raw.tam) }}</strong></div>
+          <div class="market-cell"><span class="muted">SAM</span><strong>{{ formatMoney(modal.result.raw.sam) }}</strong></div>
+          <div class="market-cell"><span class="muted">SOM</span><strong>{{ formatMoney(modal.result.raw.som) }}</strong></div>
+        </div>
+        <div v-if="modal.result.raw.methodology" class="market-note">
+          <span class="badge">Metodologia</span>
+          <p>{{ modal.result.raw.methodology }}</p>
+        </div>
+        <div v-if="modal.result.raw.sources?.length" class="market-note">
+          <span class="badge badge--alt">Fontes</span>
+          <p>{{ modal.result.raw.sources.join(', ') }}</p>
+        </div>
+        <p v-if="modal.result.raw.disclaimer" class="muted market-disclaimer"><AlertTriangle :size="14" /> {{ modal.result.raw.disclaimer }}</p>
+      </template>
+      <template v-else-if="Array.isArray(modal.result?.idealCustomers) && modal.result.idealCustomers.length">
+        <h4 class="ai-section"><User :size="18" /> Clientes ideais propostos</h4>
         <div
           v-for="(p, i) in modal.result.idealCustomers"
           :key="`ic-${i}`"
@@ -59,7 +82,7 @@ function suggestionText(s) {
         </div>
 
         <template v-if="Array.isArray(modal.result?.companyChanges) && modal.result.companyChanges.length">
-          <h4 class="ai-section">🔧 O que a empresa precisa mudar</h4>
+          <h4 class="ai-section"><Wrench :size="18" /> O que a empresa precisa mudar</h4>
           <div
             v-for="(ch, i) in modal.result.companyChanges"
             :key="`cc-${i}`"
@@ -127,6 +150,84 @@ function suggestionText(s) {
   margin-top: t.$space-3;
   font-style: italic;
   font-size: t.$font-size-sm;
+}
+
+.ai-modal-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: t.$space-2;
+  color: t.$color-primary;
+  font-size: t.$font-size-xl;
+}
+
+.ai-section {
+  display: flex;
+  align-items: center;
+  gap: t.$space-2;
+}
+
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: t.$space-3;
+  margin-bottom: t.$space-4;
+
+  .market-cell {
+    background: t.$color-bg-soft;
+    border-radius: t.$radius-sm;
+    padding: t.$space-3;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    span { font-size: t.$font-size-xs; }
+    strong { font-size: t.$font-size-lg; color: t.$color-primary; }
+  }
+}
+
+.market-note {
+  margin-bottom: t.$space-3;
+
+  .badge {
+    display: inline-block;
+    background: t.$color-primary;
+    color: #fff;
+    font-size: t.$font-size-xs;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-bottom: 4px;
+
+    &--alt { background: #6b7280; }
+  }
+
+  p { margin: 0; font-size: t.$font-size-sm; }
+}
+
+.market-disclaimer {
+  font-size: t.$font-size-xs;
+  margin-top: t.$space-2;
+}
+
+.ai-debug {
+  margin-top: t.$space-2;
+  font-size: t.$font-size-xs;
+
+  summary {
+    cursor: pointer;
+    color: t.$color-text-light;
+  }
+
+  pre {
+    margin-top: t.$space-2;
+    padding: t.$space-2;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: t.$radius-sm;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 240px;
+    overflow: auto;
+  }
 }
 
 .ai-suggestion {

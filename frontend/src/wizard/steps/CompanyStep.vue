@@ -7,6 +7,7 @@ import BaseAutocomplete from '@/components/common/BaseAutocomplete.vue'
 import BaseSelect from '@/components/common/BaseSelect.vue'
 import { SEGMENT_OPTIONS } from '@/lib/optionLists'
 import BaseSwitch from '@/components/common/BaseSwitch.vue'
+import { Bot } from 'lucide-vue-next'
 import FormGrid from '@/components/common/FormGrid.vue'
 import HelpBox from '@/components/common/HelpBox.vue'
 
@@ -56,6 +57,9 @@ function save() { store.save() }
       <BaseField label="Porte">
         <BaseSelect v-model="c.size" :options="sizeOptions" @update:model-value="save" />
       </BaseField>
+      <BaseField label="Número de funcionários" hint="incluindo você">
+        <BaseInput v-model="c.employees" type="number" min="1" placeholder="Ex: 5" @update:model-value="save" />
+      </BaseField>
       <BaseField label="Faturamento mensal estimado" hint="opcional">
         <BaseSelect v-model="c.revenue" :options="revenueOptions" @update:model-value="save" />
       </BaseField>
@@ -69,7 +73,7 @@ function save() { store.save() }
 
     <div class="ai-toggle">
       <div class="ai-toggle__text">
-        <h5>🤖 Ativar Assistente de IA</h5>
+        <h5><Bot :size="18" /> Ativar Assistente de IA</h5>
         <p class="muted">
           Quando ativo, botões de IA aparecem nos passos para sugerir personas,
           SWOT, concorrentes, <strong>clientes ideais</strong> e mudanças estratégicas
@@ -104,6 +108,9 @@ function save() { store.save() }
 
     h5 {
       margin: 0 0 4px;
+      display: flex;
+      align-items: center;
+      gap: t.$space-2;
     }
 
     p {

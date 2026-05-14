@@ -50,6 +50,12 @@ export const ALL_STEPS = [
     component: MarketStep
   },
   {
+    id: 'product',
+    title: 'Produto-foco / Portfólio',
+    desc: 'Liste suas ofertas. O sistema identifica qual produto deve receber o foco (80/20).',
+    component: ProductStep
+  },
+  {
     id: 'competition',
     title: 'Análise de Concorrência',
     desc: 'Liste concorrentes e avalie cada um em critérios-chave (1 = fraco, 5 = excelente).',
@@ -82,12 +88,6 @@ export const ALL_STEPS = [
     desc: 'Defina o problema central e mapeie as possíveis causas pelos 6Ms.',
     modeOnly: 'completo',
     component: IshikawaStep
-  },
-  {
-    id: 'product',
-    title: 'Produto-foco / Portfólio',
-    desc: 'Liste suas ofertas. O sistema identifica qual produto deve receber o foco (80/20).',
-    component: ProductStep
   },
   {
     id: 'pricing',

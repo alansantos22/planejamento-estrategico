@@ -5,6 +5,7 @@ import { funnelAnalysis } from '@/lib/scoring'
 import { formatMoney } from '@/lib/formatters'
 import BaseField from '@/components/common/BaseField.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
+import BaseMoneyInput from '@/components/common/BaseMoneyInput.vue'
 import FormGrid from '@/components/common/FormGrid.vue'
 import HelpBox from '@/components/common/HelpBox.vue'
 import AiHelperButton from '@/components/ai/AiHelperButton.vue'
@@ -53,14 +54,14 @@ function removeChannel(i) {
     <!-- Ticket, ciclo, meta -->
     <div class="card" style="margin-top:12px">
       <FormGrid :cols="2">
-        <BaseField label="Ticket médio (R$)">
-          <BaseInput v-model="f.avgTicket" type="number" placeholder="Ex: 350" @update:model-value="save" />
+        <BaseField label="Ticket médio">
+          <BaseMoneyInput v-model="f.avgTicket" placeholder="350" @update:model-value="save" />
         </BaseField>
         <BaseField label="Ciclo de venda (dias)">
           <BaseInput v-model="f.salesCycleDays" type="number" placeholder="Ex: 30" @update:model-value="save" />
         </BaseField>
-        <BaseField label="Meta de receita mensal (R$)" :span="2">
-          <BaseInput v-model="f.monthlyRevenueGoal" type="number" placeholder="Ex: 100000" @update:model-value="save" />
+        <BaseField label="Meta de receita mensal" :span="2">
+          <BaseMoneyInput v-model="f.monthlyRevenueGoal" placeholder="100.000" @update:model-value="save" />
         </BaseField>
       </FormGrid>
     </div>

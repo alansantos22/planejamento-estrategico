@@ -89,9 +89,14 @@ export async function registerAgentRoutes(fastify) {
       // Defesa em profundidade na saída: remove tags HTML, trunca strings.
       return sanitizeOutput(result);
     } catch (err) {
-      fastify.log.error({ err, agent: name }, 'Falha no agente');
+      fastify.log.error({ err, agent: name, stack: err?.stack }, 'Falha no agente');
       reply.code(500);
-      return { error: 'Erro interno no agente' };
+      const body = { error: 'Erro interno no agente' };
+      // Em dev, devolve a mensagem real pra aparecer no modal do frontend.
+      if (process.env.NODE_ENV !== 'production') {
+        body.message = err?.message || String(err);
+      }
+      return body;
     }
   });
 }

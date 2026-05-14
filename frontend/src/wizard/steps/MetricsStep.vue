@@ -4,6 +4,7 @@ import { usePlanStore } from '@/stores/plan'
 import { ltvCacAnalysis } from '@/lib/scoring'
 import BaseField from '@/components/common/BaseField.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
+import BaseMoneyInput from '@/components/common/BaseMoneyInput.vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
 import FormGrid from '@/components/common/FormGrid.vue'
 import HelpBox from '@/components/common/HelpBox.vue'
@@ -23,14 +24,14 @@ function save() { store.save() }
       &lt;3x crítico • 3-5x aceitável • <strong>5-10x ideal</strong> • &gt;10x subinvestindo em marketing.
     </HelpBox>
     <FormGrid :cols="2">
-      <BaseField label="CAC (Custo de Aquisição em R$)">
-        <BaseInput v-model="m.cac" type="number" placeholder="Ex: 200" @update:model-value="save" />
+      <BaseField label="CAC" hint="custo de aquisição">
+        <BaseMoneyInput v-model="m.cac" placeholder="200" @update:model-value="save" />
       </BaseField>
-      <BaseField label="LTV (Lifetime Value em R$)">
-        <BaseInput v-model="m.ltv" type="number" placeholder="Ex: 1500" @update:model-value="save" />
+      <BaseField label="LTV" hint="lifetime value">
+        <BaseMoneyInput v-model="m.ltv" placeholder="1.500" @update:model-value="save" />
       </BaseField>
-      <BaseField label="Ticket médio (R$)" hint="opcional">
-        <BaseInput v-model="m.tickets" type="number" placeholder="Ex: 250" @update:model-value="save" />
+      <BaseField label="Ticket médio" hint="opcional">
+        <BaseMoneyInput v-model="m.tickets" placeholder="250" @update:model-value="save" />
       </BaseField>
       <BaseField label="Churn mensal (%)" hint="opcional">
         <BaseInput v-model="m.churn" type="number" step="0.1" placeholder="Ex: 4" @update:model-value="save" />

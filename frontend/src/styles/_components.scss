@@ -212,6 +212,9 @@ label.field,
   background: #eaf3fb;
   color: #1f4e79;
   margin: s.$space-2 0;
+  display: flex;
+  align-items: center;
+  gap: s.$space-2;
 
   &.warning {
     border-left-color: c.$color-warning;

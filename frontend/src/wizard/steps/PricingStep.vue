@@ -5,6 +5,7 @@ import { pricingAnalysis } from '@/lib/scoring'
 import { clamp } from '@/lib/formatters'
 import BaseField from '@/components/common/BaseField.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
+import BaseMoneyInput from '@/components/common/BaseMoneyInput.vue'
 import FormGrid from '@/components/common/FormGrid.vue'
 import HelpBox from '@/components/common/HelpBox.vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
@@ -53,20 +54,20 @@ function save() { store.save() }
 
       <h4 style="margin:18px 0 10px">Pricing</h4>
       <FormGrid :cols="2">
-        <BaseField label="Preço atual (R$)">
-          <BaseInput v-model="pr.currentPrice" type="number" placeholder="Ex: 297" @update:model-value="save" />
+        <BaseField label="Preço atual">
+          <BaseMoneyInput v-model="pr.currentPrice" placeholder="297" @update:model-value="save" />
         </BaseField>
         <BaseField label="Margem alvo (%)">
           <BaseInput v-model="pr.targetMargin" type="number" placeholder="Ex: 60" @update:model-value="save" />
         </BaseField>
-        <BaseField label="Mercado, mín (R$)">
-          <BaseInput v-model="pr.marketMin" type="number" placeholder="Ex: 99" @update:model-value="save" />
+        <BaseField label="Mercado, mín">
+          <BaseMoneyInput v-model="pr.marketMin" placeholder="99" @update:model-value="save" />
         </BaseField>
-        <BaseField label="Mercado, mediana (R$)">
-          <BaseInput v-model="pr.marketMedian" type="number" placeholder="Ex: 350" @update:model-value="save" />
+        <BaseField label="Mercado, mediana">
+          <BaseMoneyInput v-model="pr.marketMedian" placeholder="350" @update:model-value="save" />
         </BaseField>
-        <BaseField label="Mercado, máx (R$)">
-          <BaseInput v-model="pr.marketMax" type="number" placeholder="Ex: 1500" @update:model-value="save" />
+        <BaseField label="Mercado, máx">
+          <BaseMoneyInput v-model="pr.marketMax" placeholder="1.500" @update:model-value="save" />
         </BaseField>
         <BaseField label="Margem real atual (%)">
           <BaseInput v-model="pr.actualMargin" type="number" placeholder="Ex: 52" @update:model-value="save" />
