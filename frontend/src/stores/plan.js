@@ -53,7 +53,8 @@ export const usePlanStore = defineStore('plan', {
 
   getters: {
     isFullMode: (s) => s.plan.mode === 'completo',
-    aiBackendUrl: (s) => s.plan.ai?.backendUrl?.trim() || ''
+    aiBackendUrl: (s) => s.plan.ai?.backendUrl?.trim() || '',
+    aiAssistantEnabled: (s) => !!s.plan.ai?.assistantEnabled
   },
 
   actions: {
@@ -151,6 +152,12 @@ export const usePlanStore = defineStore('plan', {
 
     setStep(i) {
       this.plan.currentStep = Math.max(0, i)
+      this.save()
+    },
+
+    setAiAssistantEnabled(enabled) {
+      this.plan.ai = this.plan.ai || { backendUrl: '', assistantEnabled: false, cache: {} }
+      this.plan.ai.assistantEnabled = !!enabled
       this.save()
     },
 

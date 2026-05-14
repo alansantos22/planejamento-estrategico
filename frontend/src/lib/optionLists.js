@@ -1,0 +1,85 @@
+/**
+ * Listas curadas para campos de autocomplete.
+ * O valor digitado é livre, mas as opções padronizam termos comuns,
+ * permitindo agrupar/filtrar leads por segmento, cargo, canal etc.
+ */
+
+export const SEGMENT_OPTIONS = [
+  'Agência de Marketing',
+  'Agronegócio',
+  'Alimentos e Bebidas',
+  'Arquitetura e Design',
+  'Beleza e Estética',
+  'Construção Civil',
+  'Consultoria de Gestão',
+  'Contabilidade',
+  'E-commerce',
+  'Educação e Cursos',
+  'Energia e Sustentabilidade',
+  'Entretenimento e Mídia',
+  'Eventos',
+  'Fitness e Bem-estar',
+  'Imobiliário',
+  'Indústria',
+  'Jurídico / Advocacia',
+  'Logística e Transporte',
+  'Marketplace',
+  'Mídia e Conteúdo',
+  'Moda e Vestuário',
+  'Pet',
+  'Petshop e Veterinária',
+  'Saúde e Clínicas',
+  'Seguros',
+  'Serviços Financeiros',
+  'Serviços Profissionais',
+  'SaaS / Software',
+  'Tecnologia / TI',
+  'Telecomunicações',
+  'Turismo e Hospitalidade',
+  'Varejo',
+  'Outro'
+]
+
+export const ROLE_OPTIONS = [
+  'CEO / Sócio-fundador',
+  'COO / Diretor de Operações',
+  'CFO / Diretor Financeiro',
+  'CTO / Diretor de Tecnologia',
+  'CMO / Diretor de Marketing',
+  'Diretor Comercial',
+  'Diretor de Vendas',
+  'Diretor de RH',
+  'Gerente de Marketing',
+  'Gerente Comercial',
+  'Gerente de Vendas',
+  'Gerente de Produto',
+  'Gerente Financeiro',
+  'Coordenador de Marketing',
+  'Coordenador Comercial',
+  'Analista de Marketing',
+  'Analista Comercial',
+  'Empreendedor Solo / MEI',
+  'Autônomo',
+  'Freelancer',
+  'Consultor'
+]
+
+export const CHANNEL_OPTIONS = [
+  'LinkedIn',
+  'Instagram',
+  'Facebook',
+  'TikTok',
+  'YouTube',
+  'WhatsApp',
+  'Google (busca orgânica)',
+  'Google Ads',
+  'Meta Ads',
+  'Indicação',
+  'Networking / Eventos',
+  'E-mail marketing',
+  'Outbound / Prospecção ativa',
+  'Inbound / Conteúdo',
+  'Marketplace',
+  'Loja física',
+  'Site próprio'
+]

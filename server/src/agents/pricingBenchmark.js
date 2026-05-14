@@ -27,7 +27,7 @@ export async function pricingBenchmark(payload) {
   const user = `Segmento: ${segment || company.segment || ''}
 Região: ${company.region || 'Brasil'}
 Produto-foco: ${focus.name || '(genérico para o segmento)'}
-Persona principal: ${(personas[0] || {}).name || ''} — orçamento típico ${(personas[0] || {}).budget || '?'}
+Persona principal: ${(personas[0] || {}).name || ''} (orçamento típico ${(personas[0] || {}).budget || '?'})
 
 Estime a faixa de preço de mercado para este produto.`;
 
@@ -38,7 +38,7 @@ Estime a faixa de preço de mercado para este produto.`;
   return {
     suggestions: [{
       title: `Faixa de preço estimada (${parsed.modelType || '?'})`,
-      text: `Min: R$ ${parsed.marketMin}\nMediana: R$ ${parsed.marketMedian}\nMax: R$ ${parsed.marketMax}\n\n${parsed.rationale || ''}\n\n⚠ ${parsed.disclaimer || 'Estimativa — valide com pesquisa real.'}`
+      text: `Min: R$ ${parsed.marketMin}\nMediana: R$ ${parsed.marketMedian}\nMax: R$ ${parsed.marketMax}\n\n${parsed.rationale || ''}\n\n⚠ ${parsed.disclaimer || 'Estimativa: valide com pesquisa real.'}`
     },
     ...(parsed.similarProducts || []).map(p => ({
       title: `Produto similar: ${p.name}`,

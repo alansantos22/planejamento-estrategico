@@ -108,7 +108,7 @@ function compTotal(co) {
               <td v-for="cr in c.criteria" :key="cr">
                 <input class="num" type="number" min="1" max="5" :value="selfScore(cr)" @input="setSelfScore(cr, $event.target.value)" />
               </td>
-              <td class="total">{{ selfTotal() || '—' }}</td>
+              <td class="total">{{ selfTotal() || 'n/d' }}</td>
               <td></td>
             </tr>
             <!-- Concorrentes -->
@@ -119,7 +119,7 @@ function compTotal(co) {
               <td v-for="cr in c.criteria" :key="cr">
                 <input class="num" type="number" min="1" max="5" :value="compScore(co, cr)" @input="setCompScore(co, cr, $event.target.value)" />
               </td>
-              <td class="total">{{ compTotal(co) || '—' }}</td>
+              <td class="total">{{ compTotal(co) || 'n/d' }}</td>
               <td><button class="btn-icon" @click="removeCompetitor(i)">×</button></td>
             </tr>
           </tbody>
@@ -143,13 +143,13 @@ function compTotal(co) {
         </div>
         <div class="dash-tile">
           <h4>Espaço em branco</h4>
-          <div class="big">{{ analysis.whitespace.length ? analysis.whitespace.join(', ') : '—' }}</div>
+          <div class="big">{{ analysis.whitespace.length ? analysis.whitespace.join(', ') : 'n/d' }}</div>
           <div class="desc">{{ analysis.whitespace.length ? 'critérios fracos em todos' : 'todos os critérios cobertos' }}</div>
         </div>
       </div>
       <h5 style="margin:12px 0 6px">Ranking</h5>
       <ol style="margin:0;padding-left:20px">
-        <li v-for="r in analysis.rankings" :key="r.name">{{ r.name }} — <strong>{{ r.total }}</strong> pts</li>
+        <li v-for="r in analysis.rankings" :key="r.name">{{ r.name }}: <strong>{{ r.total }}</strong> pts</li>
       </ol>
     </div>
   </div>

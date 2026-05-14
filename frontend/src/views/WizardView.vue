@@ -41,7 +41,10 @@ function next() {
 
 <template>
   <section class="wizard-view">
-    <div class="container">
+    <div v-if="planStore.isLoading" class="container app-loading">
+      <p class="muted">Carregando seu plano…</p>
+    </div>
+    <div v-else class="container">
       <header class="wizard__head">
         <ProgressBar
           :value="progress"

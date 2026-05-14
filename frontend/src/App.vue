@@ -1,15 +1,15 @@
 <script setup>
-import { computed } from 'vue'
+import { defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import TopBar from '@/components/layout/TopBar.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
-import AiModalHost from '@/components/ai/AiModalHost.vue'
 import { usePlanStore } from '@/stores/plan'
+import { throttleClick, singleFlight } from '@/lib/debounce'
+
+const AiModalHost = defineAsyncComponent(() => import('@/components/ai/AiModalHost.vue'))
 
 const planStore = usePlanStore()
 const router = useRouter()
-
-const isLoading = computed(() => planStore.isLoading)
 
 async function handleRestart() {
   if (confirm('Tem certeza que deseja apagar todo o plano e recomeçar?')) {
@@ -18,11 +18,13 @@ async function handleRestart() {
   }
 }
 
-function handleExport() {
+// Throttle (1.5s) — usuário pode baixar quantas vezes quiser, mas não 10x por segundo.
+const handleExport = throttleClick(() => {
   planStore.exportToFile()
-}
+}, 1500)
 
-async function handleImport(file) {
+// singleFlight + throttle — import faz I/O, não pode haver dois rodando.
+const handleImport = singleFlight(throttleClick(async (file) => {
   try {
     await planStore.importFromFile(file)
     alert('Plano importado com sucesso!')
@@ -30,17 +32,7 @@ async function handleImport(file) {
   } catch (err) {
     alert(`Erro ao importar: ${err.message}`)
   }
-}
-
-function handleSettings() {
-  const url = prompt(
-    'URL do backend de IA (deixe vazio pra desabilitar):',
-    planStore.plan.ai?.backendUrl || ''
-  )
-  if (url === null) return
-  planStore.setAiBackendUrl(url)
-  alert('Configuração salva.')
-}
+}, 1500))
 </script>
 
 <template>
@@ -48,14 +40,10 @@ function handleSettings() {
     @restart="handleRestart"
     @export="handleExport"
     @import="handleImport"
-    @settings="handleSettings"
   />
 
   <main class="app-main">
-    <div v-if="isLoading" class="container app-loading">
-      <p class="muted">Carregando seu plano…</p>
-    </div>
-    <RouterView v-else />
+    <RouterView />
   </main>
 
   <AppFooter />

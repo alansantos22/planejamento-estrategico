@@ -44,7 +44,7 @@ function removeChannel(i) {
   <div>
     <HelpBox>
       <strong>Como funciona:</strong> preencha quantos passam por cada etapa hoje (opcional) e a
-      <strong>taxa de conversão</strong> para a próxima. Defina o ticket médio + meta mensal —
+      <strong>taxa de conversão</strong> para a próxima. Defina o ticket médio e a meta mensal:
       o sistema diz <em>quantos visitantes você precisa</em>.
     </HelpBox>
 
@@ -116,7 +116,7 @@ function removeChannel(i) {
         <p><strong>Clientes necessários:</strong> {{ analysis.neededClients }} / mês</p>
       </template>
       <div v-if="analysis.bottleneck" class="alert info" style="margin-top:14px">
-        🔍 <strong>Gargalo:</strong> {{ analysis.bottleneck.stage }} — apenas {{ analysis.bottleneck.rate.toFixed(1) }}% convertem.
+        🔍 <strong>Gargalo:</strong> {{ analysis.bottleneck.stage }}, apenas {{ analysis.bottleneck.rate.toFixed(1) }}% convertem.
       </div>
     </div>
   </div>

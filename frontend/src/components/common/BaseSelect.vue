@@ -2,7 +2,7 @@
 defineProps({
   modelValue: { type: [String, Number], default: '' },
   options: { type: Array, required: true },
-  placeholder: { type: String, default: '— selecione —' }
+  placeholder: { type: String, default: 'Selecione...' }
 })
 defineEmits(['update:modelValue'])
 

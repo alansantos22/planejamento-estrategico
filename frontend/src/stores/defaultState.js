@@ -99,6 +99,7 @@ export function defaultState() {
 
     ai: {
       backendUrl: 'http://localhost:3001',
+      assistantEnabled: false,
       cache: {}
     }
   }

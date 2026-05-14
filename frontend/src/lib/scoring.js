@@ -119,10 +119,10 @@ export function ltvCacAnalysis(metrics) {
   const ltv = Number(metrics.ltv) || 0
   if (!cac || !ltv) return { ratio: 0, status: 'sem-dados', label: 'Sem dados', color: 'info' }
   const ratio = ltv / cac
-  if (ratio < 3) return { ratio, status: 'critico', label: 'Crítico — você gasta demais para adquirir', color: 'danger' }
-  if (ratio < 5) return { ratio, status: 'aceitavel', label: 'Aceitável — mas pode melhorar', color: 'warning' }
-  if (ratio <= 10) return { ratio, status: 'ideal', label: 'Ideal — saudável e escalável', color: 'success' }
-  return { ratio, status: 'subinvestido', label: 'Subinvestindo — pode acelerar marketing', color: 'info' }
+  if (ratio < 3) return { ratio, status: 'critico', label: 'Crítico: você gasta demais para adquirir', color: 'danger' }
+  if (ratio < 5) return { ratio, status: 'aceitavel', label: 'Aceitável, mas pode melhorar', color: 'warning' }
+  if (ratio <= 10) return { ratio, status: 'ideal', label: 'Ideal, saudável e escalável', color: 'success' }
+  return { ratio, status: 'subinvestido', label: 'Subinvestindo, pode acelerar marketing', color: 'info' }
 }
 
 // ===== ICP Fit =====
@@ -139,8 +139,8 @@ export function icpFitScore(persona) {
 
   const score = Math.min(10, completeness * 0.8 + criticalBonus)
   if (score >= 7) return { score: round1(score), color: 'success', label: 'ICP bem definido' }
-  if (score >= 4) return { score: round1(score), color: 'warning', label: 'ICP parcial — refine os campos críticos' }
-  return { score: round1(score), color: 'danger', label: 'ICP vago — defina dor, orçamento e autoridade' }
+  if (score >= 4) return { score: round1(score), color: 'warning', label: 'ICP parcial: refine os campos críticos' }
+  return { score: round1(score), color: 'danger', label: 'ICP vago: defina dor, orçamento e autoridade' }
 }
 
 export function icpOverallScore(icp) {
@@ -172,10 +172,10 @@ export function marketAnalysis(market) {
   if (sam > tam) alerts.push('SAM não pode ser maior que TAM')
   if (som > sam) alerts.push('SOM não pode ser maior que SAM')
   if (somOfSam > 5)
-    alerts.push(`SOM = ${somOfSam.toFixed(1)}% do SAM — meta agressiva para 1 ano (recomendado ≤ 5%)`)
+    alerts.push(`SOM = ${somOfSam.toFixed(1)}% do SAM: meta agressiva para 1 ano (recomendado ≤ 5%)`)
   if (samOfTam > 50)
     alerts.push(
-      `SAM = ${samOfTam.toFixed(1)}% do TAM — verifique se o mercado endereçável é realmente tão amplo`
+      `SAM = ${samOfTam.toFixed(1)}% do TAM: verifique se o mercado endereçável é realmente tão amplo`
     )
 
   score = 10
@@ -260,26 +260,26 @@ export function pricingAnalysis(pricing) {
   const max = Number(pricing.marketMax) || 0
 
   if (!cur || !med) {
-    return { strategy: '—', position: 0, score: 0, label: 'Defina preço atual e mediana de mercado', color: 'info' }
+    return { strategy: 'n/d', position: 0, score: 0, label: 'Defina preço atual e mediana de mercado', color: 'info' }
   }
 
   const position = ((cur - min) / Math.max(1, max - min)) * 100
   let strategy, label, color
   if (cur < med * 0.7) {
     strategy = 'Penetração'
-    label = 'Preço agressivo — ganhar mercado rápido, margem apertada'
+    label = 'Preço agressivo: ganhar mercado rápido, margem apertada'
     color = 'info'
   } else if (cur < med * 1.1) {
     strategy = 'Competitivo'
-    label = 'Alinhado com o mercado — diferenciação precisa estar em outra dimensão'
+    label = 'Alinhado com o mercado: diferenciação precisa estar em outra dimensão'
     color = 'success'
   } else if (cur < med * 1.5) {
     strategy = 'Premium'
-    label = 'Acima do mercado — exige valor percebido claro'
+    label = 'Acima do mercado: exige valor percebido claro'
     color = 'warning'
   } else {
     strategy = 'Skim'
-    label = 'Muito acima do mercado — segmento de nicho'
+    label = 'Muito acima do mercado: segmento de nicho'
     color = 'warning'
   }
 
@@ -391,7 +391,7 @@ export function coherenceChecks(state) {
     ) || /b2b|empresa/.test(segText)
   const channelsText = (state.canvas?.channels || '').toLowerCase()
   if (isB2B && /tiktok|instagram\s+orgânico|b2c/.test(channelsText)) {
-    alerts.push({ level: 'warning', msg: 'ICP parece B2B mas canais sugerem público B2C — verifique alinhamento.' })
+    alerts.push({ level: 'warning', msg: 'ICP parece B2B mas canais sugerem público B2C; verifique alinhamento.' })
   }
 
   const ticket = Number(state.funnel?.avgTicket) || 0
@@ -403,7 +403,7 @@ export function coherenceChecks(state) {
     if (currentClients && needed > currentClients * 3) {
       alerts.push({
         level: 'warning',
-        msg: `Meta exige ~${Math.ceil(needed)} clientes/mês — você está em ${currentClients}. Gap >3x; revise meta ou capacidade.`
+        msg: `Meta exige ~${Math.ceil(needed)} clientes/mês; você está em ${currentClients}. Gap >3x; revise meta ou capacidade.`
       })
     }
   }
@@ -531,7 +531,7 @@ function comercialDim(state) {
 
   const pr = pricingAnalysis(state.pricing || {})
   let pricingPts = 0
-  if (pr.strategy && pr.strategy !== '—') {
+  if (pr.strategy && pr.strategy !== 'n/d') {
     pricingPts = 15
     if (pr.score >= 7) pricingPts = 30
     else if (pr.score >= 5) pricingPts = 22
@@ -565,7 +565,7 @@ function diferenciacaoDim(state) {
 function dimExplainClareza(state) {
   const v = state.vision || {}
   if (!['purpose', 'core', 'vision3to5', 'bigDream'].some((k) => _filled(v[k]))) {
-    return 'preencha propósito, valores e visão de 3–5 anos para ancorar o plano.'
+    return 'preencha propósito, valores e visão de 3 a 5 anos para ancorar o plano.'
   }
   const st = (state.pricing || {}).statement || {}
   if (!['icp', 'problem', 'product', 'benefit'].every((k) => _filled(st[k]))) {
@@ -601,7 +601,7 @@ function dimExplainExecucao(state) {
     })
   )
   if (totalKrs === 0) return 'defina OKRs com resultados-chave mensuráveis (número, %, prazo).'
-  if (measurable / totalKrs < 0.6) return 'torne os KRs mensuráveis — inclua números, % ou prazos.'
+  if (measurable / totalKrs < 0.6) return 'torne os KRs mensuráveis: inclua números, % ou prazos.'
 
   const actions = (state.actions || []).filter((a) => _filled(a.what))
   if (actions.length < 3) return 'cadastre pelo menos 3 ações 5W2H prioritárias.'
@@ -613,14 +613,14 @@ function dimExplainExecucao(state) {
 function dimExplainComercial(state) {
   const lc = ltvCacAnalysis(state.metrics || {})
   if (lc.status === 'critico') {
-    return `LTV/CAC em ${lc.ratio.toFixed(2)}x — abaixo de 3:1; reduza CAC ou aumente retenção.`
+    return `LTV/CAC em ${lc.ratio.toFixed(2)}x; abaixo de 3:1, reduza CAC ou aumente retenção.`
   }
   if (lc.status === 'sem-dados' && state.mode === 'completo') {
     return 'preencha CAC, LTV e churn para validar a equação econômica.'
   }
 
   const pr = pricingAnalysis(state.pricing || {})
-  if (!pr.strategy || pr.strategy === '—') {
+  if (!pr.strategy || pr.strategy === 'n/d') {
     return 'defina preço atual e mediana de mercado para posicionar pricing.'
   }
 
@@ -629,7 +629,7 @@ function dimExplainComercial(state) {
   const currentTop = Number((state.funnel?.stages || [])[0]?.count) || 0
   const leadsNecessarios = funAn.reverseFlow[0]?.count || 0
   if (currentTop && leadsNecessarios > currentTop * 1.5) {
-    return `funil reverso exige ${leadsNecessarios} entradas, você tem ${currentTop} — gap grande na meta.`
+    return `funil reverso exige ${leadsNecessarios} entradas, você tem ${currentTop}: gap grande na meta.`
   }
   return 'refine LTV/CAC, pricing e viabilidade do funil para sustentar a meta.'
 }
@@ -640,7 +640,7 @@ function dimExplainDiferenciacao(state) {
     return 'preencha a matriz competitiva (concorrentes e critérios) para medir diferenciação.'
   }
   if (compAn.differentiationScore < 0) {
-    return 'você está atrás da média dos concorrentes — encontre eixos onde liderar.'
+    return 'você está atrás da média dos concorrentes: encontre eixos onde liderar.'
   }
   return 'reforce critérios em que você já se destaca e explore espaços em branco no mercado.'
 }
@@ -718,7 +718,7 @@ export function strategicHealthScore(state) {
     gradeColor = 'success'
   } else if (total >= 80) {
     grade = 'A'
-    gradeLabel = 'Bom, com 1–2 pontos de atenção'
+    gradeLabel = 'Bom, com 1 ou 2 pontos de atenção'
     gradeColor = 'success'
   } else if (total >= 65) {
     grade = 'B'
@@ -746,7 +746,7 @@ export function strategicHealthScore(state) {
     .filter((d) => dims[d.key] < 70 && d.msg)
     .sort((a, b) => dims[a.key] - dims[b.key])
     .slice(0, 3)
-    .forEach((d) => explanations.push(`${d.name} (${Math.round(dims[d.key])}/100) — ${d.msg}`))
+    .forEach((d) => explanations.push(`${d.name} (${Math.round(dims[d.key])}/100): ${d.msg}`))
 
   return {
     total,

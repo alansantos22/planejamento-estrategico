@@ -23,10 +23,10 @@ function save() { store.save() }
       &lt;3x crítico • 3-5x aceitável • <strong>5-10x ideal</strong> • &gt;10x subinvestindo em marketing.
     </HelpBox>
     <FormGrid :cols="2">
-      <BaseField label="CAC — Custo de Aquisição (R$)">
+      <BaseField label="CAC (Custo de Aquisição em R$)">
         <BaseInput v-model="m.cac" type="number" placeholder="Ex: 200" @update:model-value="save" />
       </BaseField>
-      <BaseField label="LTV — Lifetime Value (R$)">
+      <BaseField label="LTV (Lifetime Value em R$)">
         <BaseInput v-model="m.ltv" type="number" placeholder="Ex: 1500" @update:model-value="save" />
       </BaseField>
       <BaseField label="Ticket médio (R$)" hint="opcional">

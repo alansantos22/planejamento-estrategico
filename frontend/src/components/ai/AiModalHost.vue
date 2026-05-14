@@ -24,7 +24,7 @@ function suggestionText(s) {
     <div class="ai-loading">
       <Spinner />
       <p>Consultando o assistente <strong>{{ modal.agentName }}</strong>…</p>
-      <p class="muted ai-loading__hint">Isso pode levar 10–30 segundos.</p>
+      <p class="muted ai-loading__hint">Isso pode levar de 10 a 30 segundos.</p>
     </div>
   </BaseModal>
 
@@ -38,7 +38,43 @@ function suggestionText(s) {
     </BaseAlert>
 
     <template v-else>
-      <template v-if="Array.isArray(modal.result?.suggestions) && modal.result.suggestions.length">
+      <template v-if="Array.isArray(modal.result?.idealCustomers) && modal.result.idealCustomers.length">
+        <h4 class="ai-section">👤 Clientes ideais propostos</h4>
+        <div
+          v-for="(p, i) in modal.result.idealCustomers"
+          :key="`ic-${i}`"
+          class="ai-suggestion"
+        >
+          <h5>{{ p.name || `Cliente #${i + 1}` }}<span v-if="p.fitScore" class="muted"> · fit {{ p.fitScore }}/10</span></h5>
+          <p v-if="p.role"><strong>Papel:</strong> {{ p.role }}<span v-if="p.companySize"> · {{ p.companySize }}</span></p>
+          <p v-if="p.pain"><strong>Dor:</strong> {{ p.pain }}</p>
+          <p v-if="p.trigger"><strong>Gatilho:</strong> {{ p.trigger }}</p>
+          <p v-if="p.budget || p.authority">
+            <strong v-if="p.budget">Orçamento:</strong> {{ p.budget }}
+            <span v-if="p.budget && p.authority"> · </span>
+            <strong v-if="p.authority">Autoridade:</strong> {{ p.authority }}
+          </p>
+          <p v-if="p.channel"><strong>Canal:</strong> {{ p.channel }}</p>
+          <p v-if="p.reasoning" class="muted"><em>{{ p.reasoning }}</em></p>
+        </div>
+
+        <template v-if="Array.isArray(modal.result?.companyChanges) && modal.result.companyChanges.length">
+          <h4 class="ai-section">🔧 O que a empresa precisa mudar</h4>
+          <div
+            v-for="(ch, i) in modal.result.companyChanges"
+            :key="`cc-${i}`"
+            class="ai-suggestion ai-suggestion--alt"
+          >
+            <h5>{{ ch.area }}: {{ ch.change }}</h5>
+            <p v-if="ch.why" class="muted">{{ ch.why }}</p>
+          </div>
+        </template>
+
+        <p v-if="modal.result?.rationale" class="muted ai-rationale">
+          {{ modal.result.rationale }}
+        </p>
+      </template>
+      <template v-else-if="Array.isArray(modal.result?.suggestions) && modal.result.suggestions.length">
         <div
           v-for="(s, i) in modal.result.suggestions"
           :key="i"
@@ -82,6 +118,17 @@ function suggestionText(s) {
   }
 }
 
+.ai-section {
+  margin: t.$space-4 0 t.$space-2;
+  font-size: t.$font-size-lg;
+}
+
+.ai-rationale {
+  margin-top: t.$space-3;
+  font-style: italic;
+  font-size: t.$font-size-sm;
+}
+
 .ai-suggestion {
   background: t.$color-bg-soft;
   border-left: 4px solid t.$color-primary;
@@ -89,9 +136,18 @@ function suggestionText(s) {
   border-radius: t.$radius-sm;
   margin-bottom: t.$space-3;
 
+  &--alt {
+    border-left-color: #f59e0b;
+  }
+
   h5 {
     margin: 0 0 t.$space-2 - 2px;
     color: t.$color-primary;
+  }
+
+  p {
+    margin: 4px 0;
+    font-size: t.$font-size-sm;
   }
 
   pre {

@@ -26,7 +26,7 @@ const profile = computed(() => swotProfile(store.plan.swot))
     <div class="tows-grid">
       <div class="tows-cell">
         <span class="strategy-tag">Use forças para capturar oportunidades</span>
-        <h4>FO — Estratégias Ofensivas</h4>
+        <h4>FO: Estratégias Ofensivas</h4>
         <ul v-if="tows.FO.length">
           <li v-for="(item, i) in tows.FO" :key="i">{{ item.text }}</li>
         </ul>
@@ -34,7 +34,7 @@ const profile = computed(() => swotProfile(store.plan.swot))
       </div>
       <div class="tows-cell">
         <span class="strategy-tag">Use forças para mitigar ameaças</span>
-        <h4>FA — Estratégias Defensivas</h4>
+        <h4>FA: Estratégias Defensivas</h4>
         <ul v-if="tows.FA.length">
           <li v-for="(item, i) in tows.FA" :key="i">{{ item.text }}</li>
         </ul>
@@ -42,7 +42,7 @@ const profile = computed(() => swotProfile(store.plan.swot))
       </div>
       <div class="tows-cell">
         <span class="strategy-tag">Corrija fraquezas para aproveitar oportunidades</span>
-        <h4>WO — Estratégias de Reorientação</h4>
+        <h4>WO: Estratégias de Reorientação</h4>
         <ul v-if="tows.WO.length">
           <li v-for="(item, i) in tows.WO" :key="i">{{ item.text }}</li>
         </ul>
@@ -50,7 +50,7 @@ const profile = computed(() => swotProfile(store.plan.swot))
       </div>
       <div class="tows-cell">
         <span class="strategy-tag">Reduza fraquezas e proteja-se de ameaças</span>
-        <h4>WA — Estratégias de Sobrevivência</h4>
+        <h4>WA: Estratégias de Sobrevivência</h4>
         <ul v-if="tows.WA.length">
           <li v-for="(item, i) in tows.WA" :key="i">{{ item.text }}</li>
         </ul>

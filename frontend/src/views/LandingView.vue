@@ -22,6 +22,11 @@ const fullMode = computed({
   set: (v) => planStore.setMode(v ? 'completo' : 'enxuto')
 })
 
+const aiAssistant = computed({
+  get: () => planStore.aiAssistantEnabled,
+  set: (v) => planStore.setAiAssistantEnabled(v)
+})
+
 function start() {
   if (typeof planStore.plan.currentStep !== 'number') planStore.plan.currentStep = 0
   router.push({ name: 'wizard' })
@@ -36,7 +41,7 @@ function start() {
       </h1>
       <p class="hero__lead">
         Wizard guiado que cobre ICP, mercado, concorrência, produto-foco, pricing, funil de vendas,
-        SWOT, OKRs e plano de ação — com cálculos automáticos e
+        SWOT, OKRs e plano de ação, com cálculos automáticos e
         <strong>assistente de IA opcional</strong> para sugerir ideias quando você travar.
       </p>
 
@@ -46,6 +51,17 @@ function start() {
           <p class="muted">Inclui Visão, Business Model Canvas, Ishikawa e Métricas CAC/LTV.</p>
         </div>
         <BaseSwitch v-model="fullMode" />
+      </div>
+
+      <div class="mode-switch mode-switch--ai">
+        <div>
+          <h3>🤖 Assistente de IA</h3>
+          <p class="muted">
+            Habilita botões de IA no wizard para sugerir personas, SWOT, concorrentes,
+            <strong>cliente ideal + mudanças na empresa</strong> e mais.
+          </p>
+        </div>
+        <BaseSwitch v-model="aiAssistant" />
       </div>
 
       <BaseButton variant="primary" size="lg" @click="start">Começar agora →</BaseButton>
@@ -88,14 +104,20 @@ function start() {
 
 .mode-switch {
   @include t.flex-between;
+  gap: t.$space-4;
   background: t.$color-surface;
   border: 1px solid t.$color-border;
   border-radius: t.$radius-lg;
   box-shadow: t.$shadow-md;
   padding: t.$space-5;
   max-width: 520px;
-  margin: 0 auto t.$space-6;
+  margin: 0 auto t.$space-3;
   text-align: left;
+
+  &--ai {
+    margin-bottom: t.$space-6;
+    border-color: t.$color-primary;
+  }
 
   h3 {
     margin: 0 0 t.$space-1;

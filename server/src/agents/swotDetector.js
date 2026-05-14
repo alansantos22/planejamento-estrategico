@@ -21,7 +21,7 @@ Forneça 3-5 itens por quadrante. Seja específico ao contexto.`;
 
 export async function swotDetector(payload) {
   const { company = {}, canvas = {}, personas = [] } = payload;
-  const user = `Empresa: ${company.name || '(sem nome)'} — ${company.segment || ''}
+  const user = `Empresa: ${company.name || '(sem nome)'} (${company.segment || ''})
 Porte: ${company.size || ''}
 
 Modelo de Negócio (BMC):

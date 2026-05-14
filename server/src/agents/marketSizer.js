@@ -11,7 +11,7 @@ Retorne JSON:
   "tam": número em R$,
   "sam": número em R$,
   "som": número em R$,
-  "methodology": "como você chegou nos números — referências, fontes, lógica",
+  "methodology": "como você chegou nos números: referências, fontes, lógica",
   "sources": ["fonte 1", "fonte 2"] (opcional),
   "disclaimer": "aviso sobre limitações da estimativa"
 }`;
@@ -40,7 +40,7 @@ ${parsed.methodology || ''}
 
 ${parsed.sources ? 'Fontes citadas: ' + parsed.sources.join(', ') : ''}
 
-⚠ ${parsed.disclaimer || 'Estimativa — refine com fontes oficiais (IBGE, associações setoriais).'}`
+⚠ ${parsed.disclaimer || 'Estimativa: refine com fontes oficiais (IBGE, associações setoriais).'}`
     }],
     raw: parsed,
     applicable: false

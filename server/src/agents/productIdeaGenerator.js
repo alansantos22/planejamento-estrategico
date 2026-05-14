@@ -17,7 +17,7 @@ Retorne JSON:
   "rationale": "lógica geral"
 }
 
-Seja realista — não invente ofertas mirabolantes que a empresa não tem capacidade de entregar.`;
+Seja realista; não invente ofertas mirabolantes que a empresa não tem capacidade de entregar.`;
 
 export async function productIdeaGenerator(payload) {
   const { company = {}, personas = [], swot = {}, competition = {} } = payload;

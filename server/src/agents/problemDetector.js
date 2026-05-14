@@ -1,6 +1,6 @@
 import { callAgent, extractJSON, MODELS } from '../lib/gemini.js';
 
-const SYSTEM = `Você é um consultor de gestão que faz "perguntas duras" — identifica problemas e riscos que o empreendedor não está vendo. A partir da SWOT, métricas e funil, aponte 3-6 problemas/riscos não capturados.
+const SYSTEM = `Você é um consultor de gestão que faz "perguntas duras": identifica problemas e riscos que o empreendedor não está vendo. A partir da SWOT, métricas e funil, aponte 3 a 6 problemas/riscos não capturados.
 
 Para cada problema:
 - title: nome curto do problema

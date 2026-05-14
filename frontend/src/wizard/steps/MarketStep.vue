@@ -28,13 +28,13 @@ function save() { store.save() }
 
     <div class="card">
       <FormGrid :cols="2">
-        <BaseField label="TAM — Mercado Total" hint="anual, R$">
+        <BaseField label="TAM (Mercado Total)" hint="anual, R$">
           <BaseInput v-model="m.tam" type="number" placeholder="Ex: 50000000000" @update:model-value="save" />
         </BaseField>
-        <BaseField label="SAM — Endereçável" hint="anual, R$">
+        <BaseField label="SAM (Endereçável)" hint="anual, R$">
           <BaseInput v-model="m.sam" type="number" placeholder="Ex: 2000000000" @update:model-value="save" />
         </BaseField>
-        <BaseField label="SOM — Obtenível em 12 meses" hint="R$">
+        <BaseField label="SOM (Obtenível em 12 meses)" hint="R$">
           <BaseInput v-model="m.som" type="number" placeholder="Ex: 50000000" @update:model-value="save" />
         </BaseField>
         <BaseField label="Período-base (meses)">

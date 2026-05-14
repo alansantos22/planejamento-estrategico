@@ -189,7 +189,7 @@ function printProfile() {
             <div class="persona-line">
               <div>
                 <strong>{{ primaryPersona.name || 'Persona primária' }}</strong>
-                <span v-if="primaryPersona.role" class="muted"> — {{ primaryPersona.role }}</span>
+                <span v-if="primaryPersona.role" class="muted"> · {{ primaryPersona.role }}</span>
               </div>
               <span v-if="primaryPersonaFit" class="badge" :class="primaryPersonaFit.color">
                 ICP Fit {{ primaryPersonaFit.score.toFixed(1) }}/10
@@ -241,7 +241,7 @@ function printProfile() {
             <ol class="action-list">
               <li v-for="(a, i) in topActions" :key="i">
                 <strong>{{ a.what }}</strong>
-                <span v-if="a.who"> — {{ a.who }}</span>
+                <span v-if="a.who"> · {{ a.who }}</span>
                 <span v-if="a.when" class="muted"> ({{ a.when }})</span>
               </li>
             </ol>

@@ -14,7 +14,7 @@ function save() { store.save() }
 <template>
   <div>
     <HelpBox>
-      <strong>Dica:</strong> Visão é qualitativa e inspiracional. Não precisa ser perfeita agora — pode evoluir.
+      <strong>Dica:</strong> Visão é qualitativa e inspiracional. Não precisa ser perfeita agora; pode evoluir.
     </HelpBox>
     <div class="card">
       <FormGrid>

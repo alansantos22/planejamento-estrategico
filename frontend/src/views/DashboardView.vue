@@ -13,6 +13,7 @@ import { formatMoney, ishikawaCauseLabel } from '@/lib/formatters'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
 import AiHelperButton from '@/components/ai/AiHelperButton.vue'
+import { throttleClick } from '@/lib/debounce'
 
 const store = usePlanStore()
 const router = useRouter()
@@ -66,9 +67,10 @@ function goBack() {
   router.push({ name: 'wizard' })
 }
 
-function printPlan() {
+// Throttle: window.print() abre diálogo nativo — cliques múltiplos empilham.
+const printPlan = throttleClick(() => {
   window.print()
-}
+}, 2000)
 
 function viewProfile() {
   router.push({ name: 'profile' })
@@ -77,7 +79,10 @@ function viewProfile() {
 
 <template>
   <section class="dashboard-view">
-    <div class="container">
+    <div v-if="store.isLoading" class="container app-loading">
+      <p class="muted">Carregando seu plano…</p>
+    </div>
+    <div v-else class="container">
       <div class="dash-head">
         <h2>Resumo do Plano Estratégico</h2>
         <div class="dash-actions">
@@ -143,7 +148,7 @@ function viewProfile() {
       <div class="dash-grid">
         <div class="dash-tile">
           <h4>Empresa</h4>
-          <div class="big">{{ plan.company.name || '—' }}</div>
+          <div class="big">{{ plan.company.name || 'n/d' }}</div>
           <div class="desc">{{ plan.company.segment }}</div>
         </div>
         <div class="dash-tile">
@@ -218,7 +223,7 @@ function viewProfile() {
               </h4>
               <BaseBadge :variant="icpFitScore(p).color">{{ icpFitScore(p).score.toFixed(1) }}/10</BaseBadge>
             </div>
-            <p class="muted persona-summary__meta">{{ p.role }} — {{ p.companySize }}</p>
+            <p class="muted persona-summary__meta">{{ p.role }} · {{ p.companySize }}</p>
             <p v-if="p.pain" class="persona-summary__row"><strong>Dor:</strong> {{ p.pain }}</p>
             <p v-if="p.budget" class="persona-summary__row"><strong>Orçamento:</strong> {{ p.budget }}</p>
             <p v-if="p.channel" class="persona-summary__row"><strong>Canal:</strong> {{ p.channel }}</p>
@@ -263,15 +268,15 @@ function viewProfile() {
             </div>
             <div class="dash-tile">
               <h4>Espaço em branco</h4>
-              <div class="big">{{ compAn.whitespace.length ? compAn.whitespace.join(', ') : '—' }}</div>
+              <div class="big">{{ compAn.whitespace.length ? compAn.whitespace.join(', ') : 'n/d' }}</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- SWOT — Top itens com score -->
+      <!-- SWOT: Top itens com score -->
       <div class="dash-section">
-        <h3>SWOT — Top itens</h3>
+        <h3>SWOT: Top itens</h3>
         <div class="swot-grid">
           <div class="swot-block s">
             <h4>Forças</h4>
@@ -317,24 +322,24 @@ function viewProfile() {
         <h3>Estratégias Cruzadas (TOWS)</h3>
         <div class="tows-grid">
           <div class="tows-cell">
-            <h4>FO — Ofensivas</h4>
+            <h4>FO: Ofensivas</h4>
             <ul v-if="tows.FO.length"><li v-for="(item, i) in tows.FO" :key="i">{{ item.text }}</li></ul>
-            <p v-else class="muted">—</p>
+            <p v-else class="muted">n/d</p>
           </div>
           <div class="tows-cell">
-            <h4>FA — Defensivas</h4>
+            <h4>FA: Defensivas</h4>
             <ul v-if="tows.FA.length"><li v-for="(item, i) in tows.FA" :key="i">{{ item.text }}</li></ul>
-            <p v-else class="muted">—</p>
+            <p v-else class="muted">n/d</p>
           </div>
           <div class="tows-cell">
-            <h4>WO — Reorientação</h4>
+            <h4>WO: Reorientação</h4>
             <ul v-if="tows.WO.length"><li v-for="(item, i) in tows.WO" :key="i">{{ item.text }}</li></ul>
-            <p v-else class="muted">—</p>
+            <p v-else class="muted">n/d</p>
           </div>
           <div class="tows-cell">
-            <h4>WA — Sobrevivência</h4>
+            <h4>WA: Sobrevivência</h4>
             <ul v-if="tows.WA.length"><li v-for="(item, i) in tows.WA" :key="i">{{ item.text }}</li></ul>
-            <p v-else class="muted">—</p>
+            <p v-else class="muted">n/d</p>
           </div>
         </div>
       </div>
@@ -351,12 +356,12 @@ function viewProfile() {
             </div>
             <div class="dash-tile">
               <h4>Estrelas</h4>
-              <div class="big">{{ prodAn.stars.map((s) => s.name).join(', ') || '—' }}</div>
+              <div class="big">{{ prodAn.stars.map((s) => s.name).join(', ') || 'n/d' }}</div>
               <div class="desc">eficiência ≥ 1.2</div>
             </div>
             <div class="dash-tile">
               <h4>Sangrias</h4>
-              <div class="big">{{ prodAn.bleeders.map((b) => b.name).join(', ') || '—' }}</div>
+              <div class="big">{{ prodAn.bleeders.map((b) => b.name).join(', ') || 'n/d' }}</div>
               <div class="desc">esforço alto, receita baixa</div>
             </div>
           </div>
@@ -367,7 +372,7 @@ function viewProfile() {
       </div>
 
       <!-- Posicionamento + Pricing -->
-      <div v-if="priceAn.strategy && priceAn.strategy !== '—'" class="dash-section">
+      <div v-if="priceAn.strategy && priceAn.strategy !== 'n/d'" class="dash-section">
         <h3>Posicionamento + Pricing</h3>
         <div class="card">
           <p v-if="plan.pricing?.statement?.icp" class="pricing-statement">
@@ -386,11 +391,11 @@ function viewProfile() {
             </div>
             <div class="dash-tile">
               <h4>Preço atual</h4>
-              <div class="big">R$ {{ plan.pricing.currentPrice || '—' }}</div>
+              <div class="big">R$ {{ plan.pricing.currentPrice || 'n/d' }}</div>
             </div>
             <div class="dash-tile">
               <h4>Mediana mercado</h4>
-              <div class="big">R$ {{ plan.pricing.marketMedian || '—' }}</div>
+              <div class="big">R$ {{ plan.pricing.marketMedian || 'n/d' }}</div>
             </div>
           </div>
         </div>
@@ -417,7 +422,7 @@ function viewProfile() {
             </div>
           </div>
           <div v-if="funAn.bottleneck" class="alert info funnel-bottleneck">
-            🔍 <strong>Gargalo:</strong> {{ funAn.bottleneck.stage }} —
+            🔍 <strong>Gargalo:</strong> {{ funAn.bottleneck.stage }},
             {{ funAn.bottleneck.rate.toFixed(1) }}% de conversão.
           </div>
         </div>

@@ -105,6 +105,18 @@ export function buildPayload(agentName, state) {
       }
     case 'insightsCoach':
       return { ...base, plan: state }
+    case 'idealCustomerFinder':
+      return {
+        ...base,
+        valueProp: state.canvas?.valueProp,
+        canvas: state.canvas,
+        swot: summarizeSwot(state.swot),
+        personas: state.icp?.personas || [],
+        competition: summarizeCompetition(state.competition),
+        product: state.product?.offerings || [],
+        pricing: state.pricing,
+        funnel: summarizeFunnel(state.funnel)
+      }
     default:
       return base
   }
@@ -119,10 +131,17 @@ export async function callAgent(backendUrl, agentName, payload) {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include', // envia/recebe cookie pe_session
     body: JSON.stringify(payload)
   })
-  if (!res.ok) throw new Error(`Backend retornou ${res.status}`)
-  return res.json()
+  const body = await res.json().catch(() => null)
+  if (!res.ok) {
+    const err = new Error(body?.message || `Backend retornou ${res.status}`)
+    err.status = res.status
+    err.code = body?.error
+    throw err
+  }
+  return body
 }
 
 /**
@@ -156,6 +175,26 @@ export function applySuggestions(agentName, result, state) {
           notes: c.notes || ''
         })
       )
+      break
+    case 'idealCustomerFinder':
+      state.icp = state.icp || { personas: [] }
+      ;(result.idealCustomers || []).forEach((c) => {
+        state.icp.personas.push({
+          name: c.name || '',
+          role: c.role || '',
+          ageRange: c.ageRange || '',
+          companySize: c.companySize || '',
+          pain: c.pain || '',
+          trigger: c.trigger || '',
+          budget: c.budget || '',
+          authority: c.authority || '',
+          channel: c.channel || '',
+          primary: false
+        })
+      })
+      if (state.icp.personas.length && !state.icp.personas.some((p) => p.primary)) {
+        state.icp.personas[0].primary = true
+      }
       break
     case 'productIdeaGenerator':
       state.product = state.product || { offerings: [] }

@@ -19,13 +19,16 @@ function buildPublicProfile(plan) {
   };
 }
 
+// planId vem da sessão (cookie), NUNCA da URL — o :id na URL é ignorado pra
+// evitar que um cliente leia/grave plano de outra pessoa só trocando a string.
+async function ownedPlanId(req, reply) {
+  const s = await req.requireSession();
+  return s.planId;
+}
+
 export async function registerPlanRoutes(fastify) {
   fastify.get('/plans/:id', async (req, reply) => {
-    const { id } = req.params;
-    if (!VALID_ID.test(id)) {
-      reply.code(400);
-      return { error: 'ID inválido.' };
-    }
+    const id = await ownedPlanId(req, reply);
     const plan = await getPlan(id);
     if (!plan) {
       reply.code(404);
@@ -35,11 +38,7 @@ export async function registerPlanRoutes(fastify) {
   });
 
   fastify.put('/plans/:id', async (req, reply) => {
-    const { id } = req.params;
-    if (!VALID_ID.test(id)) {
-      reply.code(400);
-      return { error: 'ID inválido.' };
-    }
+    const id = await ownedPlanId(req, reply);
     const data = req.body;
     if (!data || typeof data !== 'object') {
       reply.code(400);
@@ -49,11 +48,7 @@ export async function registerPlanRoutes(fastify) {
   });
 
   fastify.delete('/plans/:id', async (req, reply) => {
-    const { id } = req.params;
-    if (!VALID_ID.test(id)) {
-      reply.code(400);
-      return { error: 'ID inválido.' };
-    }
+    const id = await ownedPlanId(req, reply);
     const removed = await deletePlan(id);
     return { ok: true, removed };
   });
@@ -62,11 +57,7 @@ export async function registerPlanRoutes(fastify) {
 
   // Gera (ou retorna) o slug público para um plano. Idempotente.
   fastify.post('/plans/:id/share', async (req, reply) => {
-    const { id } = req.params;
-    if (!VALID_ID.test(id)) {
-      reply.code(400);
-      return { error: 'ID inválido.' };
-    }
+    const id = await ownedPlanId(req, reply);
     const plan = await getPlan(id);
     if (!plan) {
       reply.code(404);

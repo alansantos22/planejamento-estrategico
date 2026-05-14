@@ -4,7 +4,9 @@ import { usePlanStore } from '@/stores/plan'
 import { icpFitScore } from '@/lib/scoring'
 import BaseField from '@/components/common/BaseField.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
+import BaseAutocomplete from '@/components/common/BaseAutocomplete.vue'
 import BaseSelect from '@/components/common/BaseSelect.vue'
+import { ROLE_OPTIONS, CHANNEL_OPTIONS } from '@/lib/optionLists'
 import BaseTextarea from '@/components/common/BaseTextarea.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
@@ -17,7 +19,7 @@ const store = usePlanStore()
 const personas = computed(() => store.plan.icp.personas)
 
 const authorityOptions = [
-  { value: '', label: '— selecione —' },
+  { value: '', label: 'Selecione...' },
   { value: 'Decisor final', label: 'Decisor final' },
   { value: 'Influenciador', label: 'Influenciador' },
   { value: 'Comitê', label: 'Comitê' },
@@ -50,11 +52,14 @@ function setPrimary(i) {
 <template>
   <div>
     <HelpBox>
-      <strong>Dica:</strong> Marque <strong>uma persona como primária</strong> — ela puxa as decisões.
+      <strong>Dica:</strong> Marque <strong>uma persona como primária</strong>. Ela puxa as decisões.
       Campos críticos: <strong>dor, orçamento e autoridade de decisão</strong>.
     </HelpBox>
 
-    <AiHelperButton agent="personaDetector" label="Sugerir personas a partir do contexto" />
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 16px;">
+      <AiHelperButton agent="personaDetector" label="Sugerir personas a partir do contexto" />
+      <AiHelperButton agent="idealCustomerFinder" label="Propor cliente ideal + mudanças na empresa" />
+    </div>
 
     <div v-for="(p, i) in personas" :key="i" class="persona-card">
       <div class="persona-head">
@@ -71,10 +76,15 @@ function setPrimary(i) {
 
       <FormGrid :cols="2">
         <BaseField label="Nome da persona">
-          <BaseInput v-model="p.name" placeholder="Ex: Mariana — Gerente de Marketing" @update:model-value="save" />
+          <BaseInput v-model="p.name" placeholder="Ex: Mariana, Gerente de Marketing" @update:model-value="save" />
         </BaseField>
         <BaseField label="Cargo / papel">
-          <BaseInput v-model="p.role" placeholder="Ex: Gerente / Diretor / Solo" @update:model-value="save" />
+          <BaseAutocomplete
+            v-model="p.role"
+            :options="ROLE_OPTIONS"
+            placeholder="Ex: Gerente de Marketing"
+            @update:model-value="save"
+          />
         </BaseField>
         <BaseField label="Porte da empresa-cliente" hint="se B2B">
           <BaseInput v-model="p.companySize" placeholder="Ex: PME 10-50 funcionários" @update:model-value="save" />
@@ -95,7 +105,12 @@ function setPrimary(i) {
           <BaseSelect v-model="p.authority" :options="authorityOptions" @update:model-value="save" />
         </BaseField>
         <BaseField label="Canal preferido">
-          <BaseInput v-model="p.channel" placeholder="Ex: LinkedIn / indicação / busca" @update:model-value="save" />
+          <BaseAutocomplete
+            v-model="p.channel"
+            :options="CHANNEL_OPTIONS"
+            placeholder="Ex: LinkedIn, indicação, busca"
+            @update:model-value="save"
+          />
         </BaseField>
         <BaseField :inline="true" :span="2">
           <input type="checkbox" :checked="p.primary" @change="setPrimary(i)" />

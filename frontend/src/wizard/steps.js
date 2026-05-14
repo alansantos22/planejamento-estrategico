@@ -5,22 +5,28 @@
  * `validate(plan)` retorna null se ok, string com mensagem de erro caso contrário.
  */
 
-import CompanyStep from './steps/CompanyStep.vue'
-import VisionStep from './steps/VisionStep.vue'
-import IcpStep from './steps/IcpStep.vue'
-import MarketStep from './steps/MarketStep.vue'
-import CompetitionStep from './steps/CompetitionStep.vue'
-import SwotStep from './steps/SwotStep.vue'
-import TowsStep from './steps/TowsStep.vue'
-import IshikawaStep from './steps/IshikawaStep.vue'
-import ProductStep from './steps/ProductStep.vue'
-import PricingStep from './steps/PricingStep.vue'
-import CanvasStep from './steps/CanvasStep.vue'
-import FunnelStep from './steps/FunnelStep.vue'
-import ForecastStep from './steps/ForecastStep.vue'
-import MetricsStep from './steps/MetricsStep.vue'
-import OkrsStep from './steps/OkrsStep.vue'
-import ActionsStep from './steps/ActionsStep.vue'
+import { defineAsyncComponent } from 'vue'
+
+// Cada step vira um chunk próprio, baixado apenas quando o usuário chega nele.
+// Reduz fortemente o JS inicial do wizard.
+const asyncStep = (loader) => defineAsyncComponent(loader)
+
+const CompanyStep     = asyncStep(() => import('./steps/CompanyStep.vue'))
+const VisionStep      = asyncStep(() => import('./steps/VisionStep.vue'))
+const IcpStep         = asyncStep(() => import('./steps/IcpStep.vue'))
+const MarketStep      = asyncStep(() => import('./steps/MarketStep.vue'))
+const CompetitionStep = asyncStep(() => import('./steps/CompetitionStep.vue'))
+const SwotStep        = asyncStep(() => import('./steps/SwotStep.vue'))
+const TowsStep        = asyncStep(() => import('./steps/TowsStep.vue'))
+const IshikawaStep    = asyncStep(() => import('./steps/IshikawaStep.vue'))
+const ProductStep     = asyncStep(() => import('./steps/ProductStep.vue'))
+const PricingStep     = asyncStep(() => import('./steps/PricingStep.vue'))
+const CanvasStep      = asyncStep(() => import('./steps/CanvasStep.vue'))
+const FunnelStep      = asyncStep(() => import('./steps/FunnelStep.vue'))
+const ForecastStep    = asyncStep(() => import('./steps/ForecastStep.vue'))
+const MetricsStep     = asyncStep(() => import('./steps/MetricsStep.vue'))
+const OkrsStep        = asyncStep(() => import('./steps/OkrsStep.vue'))
+const ActionsStep     = asyncStep(() => import('./steps/ActionsStep.vue'))
 
 export const ALL_STEPS = [
   {
@@ -77,13 +83,13 @@ export const ALL_STEPS = [
   },
   {
     id: 'tows',
-    title: 'SWOT Cruzada (TOWS) — Estratégias Sugeridas',
+    title: 'SWOT Cruzada (TOWS): Estratégias Sugeridas',
     desc: 'O sistema cruzou automaticamente seus principais itens para sugerir direções estratégicas.',
     component: TowsStep
   },
   {
     id: 'ishikawa',
-    title: 'Ishikawa — Causa Raiz',
+    title: 'Ishikawa: Causa Raiz',
     desc: 'Defina o problema central e mapeie as possíveis causas pelos 6Ms.',
     modeOnly: 'completo',
     component: IshikawaStep
@@ -111,7 +117,7 @@ export const ALL_STEPS = [
     id: 'funnel',
     title: 'Funil de Vendas',
     desc:
-      'Configure as etapas, taxas de conversão e meta — o sistema calcula reverso quantos leads você precisa.',
+      'Configure as etapas, taxas de conversão e meta. O sistema calcula reverso quantos leads você precisa.',
     component: FunnelStep
   },
   {

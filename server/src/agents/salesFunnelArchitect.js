@@ -17,7 +17,7 @@ Para cada etapa do funil:
 Retorne JSON:
 {
   "stages": [{name, typicalRate, benchmark, watchOut}, ...],
-  "expectedBottleneck": "etapa onde costuma travar — e por quê",
+  "expectedBottleneck": "etapa onde costuma travar, e por quê",
   "channelRecommendations": [{name, mixPct, costPerLeadEstimate, rationale}, ...],
   "playbook": "3-5 ações concretas para melhorar este funil",
   "rationale": "lógica do desenho"
@@ -28,7 +28,7 @@ export async function salesFunnelArchitect(payload) {
   const primary = personas.find(p => p.primary) || personas[0] || {};
   const user = `Empresa: ${company.name || ''}
 Segmento: ${segment || company.segment || ''}
-Persona primária: ${primary.name || ''} — ${primary.role || ''} em ${primary.companySize || ''}
+Persona primária: ${primary.name || ''} (${primary.role || ''} em ${primary.companySize || ''})
 Dor: ${primary.pain || ''}
 Canal preferido: ${primary.channel || ''}
 Autoridade: ${primary.authority || ''}
@@ -44,13 +44,13 @@ Desenhe o funil ideal para este contexto, com taxas de conversão típicas do se
   if (!parsed) return { error: 'Resposta não pôde ser parseada', text };
 
   const stagesText = (parsed.stages || []).map((s, i) =>
-    `${i + 1}. ${s.name} — taxa típica: ${s.typicalRate}% (faixa: ${s.benchmark || '?'})\n   Atenção: ${s.watchOut || ''}`
+    `${i + 1}. ${s.name}: taxa típica ${s.typicalRate}% (faixa: ${s.benchmark || '?'})\n   Atenção: ${s.watchOut || ''}`
   ).join('\n\n');
 
   return {
     suggestions: [
       { title: 'Funil sugerido', text: stagesText },
-      { title: 'Gargalo esperado', text: parsed.expectedBottleneck || '—' },
+      { title: 'Gargalo esperado', text: parsed.expectedBottleneck || 'n/d' },
       { title: 'Canais recomendados', text: (parsed.channelRecommendations || []).map(c => `- ${c.name} (${c.mixPct}% do mix, ~R$ ${c.costPerLeadEstimate}/lead): ${c.rationale}`).join('\n') },
       { title: 'Playbook de melhoria', text: parsed.playbook || '' }
     ],

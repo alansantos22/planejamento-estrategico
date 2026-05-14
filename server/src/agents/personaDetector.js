@@ -13,7 +13,7 @@ Cada persona DEVE conter:
 - authority: "Decisor final" | "Influenciador" | "Comitê" | "Indica para chefe"
 - channel: canal preferido para descobrir/comprar
 
-A primeira persona da lista será marcada como primária — escolha a que melhor representa o ICP central.
+A primeira persona da lista será marcada como primária; escolha a que melhor representa o ICP central.
 
 Retorne APENAS JSON válido no formato:
 {
@@ -32,10 +32,10 @@ Região: ${company.region || 'Brasil'}
 Proposta de valor: ${valueProp || '(não informada)'}
 
 Resumo SWOT:
-- Forças: ${(swot?.strengths || []).join('; ') || '—'}
-- Fraquezas: ${(swot?.weaknesses || []).join('; ') || '—'}
-- Oportunidades: ${(swot?.opportunities || []).join('; ') || '—'}
-- Ameaças: ${(swot?.threats || []).join('; ') || '—'}
+- Forças: ${(swot?.strengths || []).join('; ') || 'n/d'}
+- Fraquezas: ${(swot?.weaknesses || []).join('; ') || 'n/d'}
+- Oportunidades: ${(swot?.opportunities || []).join('; ') || 'n/d'}
+- Ameaças: ${(swot?.threats || []).join('; ') || 'n/d'}
 
 Sugira 2-3 personas/ICPs para esta empresa.`;
 

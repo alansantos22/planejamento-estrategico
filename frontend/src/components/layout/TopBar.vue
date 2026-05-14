@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 
-const emit = defineEmits(['restart', 'export', 'import', 'settings'])
+const emit = defineEmits(['restart', 'export', 'import'])
 const fileInput = ref(null)
 
 function onImportClick() {
@@ -28,7 +28,6 @@ function onFileChange(e) {
         <BaseButton variant="link" @click="emit('restart')">Recomeçar</BaseButton>
         <BaseButton variant="link" @click="emit('export')">Exportar</BaseButton>
         <BaseButton variant="link" @click="onImportClick">Importar</BaseButton>
-        <BaseButton variant="link" @click="emit('settings')" title="Configurações (IA backend)">⚙ Config</BaseButton>
         <input ref="fileInput" type="file" accept="application/json" hidden @change="onFileChange" />
       </nav>
     </div>

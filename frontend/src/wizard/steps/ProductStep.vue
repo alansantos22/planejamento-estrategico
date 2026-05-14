@@ -74,12 +74,12 @@ function removeOffering(i) {
         </div>
         <div class="dash-tile">
           <h4>Estrelas</h4>
-          <div class="big">{{ analysis.stars.map(s => s.name).join(', ') || '—' }}</div>
+          <div class="big">{{ analysis.stars.map(s => s.name).join(', ') || 'n/d' }}</div>
           <div class="desc">eficiência ≥ 1.2</div>
         </div>
         <div class="dash-tile">
           <h4>Sangrias</h4>
-          <div class="big">{{ analysis.bleeders.map(b => b.name).join(', ') || '—' }}</div>
+          <div class="big">{{ analysis.bleeders.map(b => b.name).join(', ') || 'n/d' }}</div>
           <div class="desc">esforço alto, receita baixa</div>
         </div>
       </div>

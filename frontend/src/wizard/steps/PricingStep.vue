@@ -59,13 +59,13 @@ function save() { store.save() }
         <BaseField label="Margem alvo (%)">
           <BaseInput v-model="pr.targetMargin" type="number" placeholder="Ex: 60" @update:model-value="save" />
         </BaseField>
-        <BaseField label="Mercado — mín (R$)">
+        <BaseField label="Mercado, mín (R$)">
           <BaseInput v-model="pr.marketMin" type="number" placeholder="Ex: 99" @update:model-value="save" />
         </BaseField>
-        <BaseField label="Mercado — mediana (R$)">
+        <BaseField label="Mercado, mediana (R$)">
           <BaseInput v-model="pr.marketMedian" type="number" placeholder="Ex: 350" @update:model-value="save" />
         </BaseField>
-        <BaseField label="Mercado — máx (R$)">
+        <BaseField label="Mercado, máx (R$)">
           <BaseInput v-model="pr.marketMax" type="number" placeholder="Ex: 1500" @update:model-value="save" />
         </BaseField>
         <BaseField label="Margem real atual (%)">
@@ -73,7 +73,7 @@ function save() { store.save() }
         </BaseField>
       </FormGrid>
 
-      <div v-if="analysis.strategy && analysis.strategy !== '—'" style="margin-top:16px">
+      <div v-if="analysis.strategy && analysis.strategy !== 'n/d'" style="margin-top:16px">
         <div class="pricing-bar">
           <div class="pricing-track">
             <div class="pricing-marker" :style="{ left: clamp(analysis.position, 0, 100) + '%' }" title="Seu preço"></div>

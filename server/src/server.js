@@ -1,10 +1,12 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
+import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { registerAgentRoutes } from './routes/agents.js';
 import { registerPlanRoutes } from './routes/plans.js';
 import { registerLeadRoutes } from './routes/leads.js';
+import { registerSessionRoutes } from './routes/session.js';
 import { init as initDb, closePool } from './lib/db.js';
 
 const PORT = Number(process.env.PORT) || 3001;
@@ -16,7 +18,14 @@ const fastify = Fastify({
 
 await fastify.register(cors, {
   origin: ALLOWED.includes('*') ? true : ALLOWED,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  // Cookie de sessão precisa de credenciais no CORS — origin '*' é incompatível com isso.
+  credentials: !ALLOWED.includes('*')
+});
+
+await fastify.register(cookie, {
+  // Não assinamos: o token JÁ é aleatório de 256 bits e validado por HMAC no DB.
+  hook: 'onRequest'
 });
 
 await fastify.register(rateLimit, {
@@ -31,6 +40,7 @@ await fastify.register(rateLimit, {
 
 fastify.get('/health', async () => ({ ok: true, ts: Date.now() }));
 
+await registerSessionRoutes(fastify);
 await registerAgentRoutes(fastify);
 await registerPlanRoutes(fastify);
 await registerLeadRoutes(fastify);

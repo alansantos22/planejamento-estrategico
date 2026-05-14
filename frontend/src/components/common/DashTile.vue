@@ -1,7 +1,7 @@
 <script setup>
 defineProps({
   label: { type: String, required: true },
-  value: { type: [String, Number], default: '—' },
+  value: { type: [String, Number], default: 'n/d' },
   desc: { type: String, default: '' }
 })
 </script>
@@ -12,9 +12,7 @@ defineProps({
     <div class="dash-tile__value">{{ value }}</div>
     <div v-if="desc || $slots.desc" class="dash-tile__desc">
       <slot name="desc">
-        <!-- legacy: descrição pode conter HTML simples por design -->
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <span v-html="desc" />
+        <span>{{ desc }}</span>
       </slot>
     </div>
   </div>

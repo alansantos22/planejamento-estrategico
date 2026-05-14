@@ -37,12 +37,9 @@ function pickLeadFields(body) {
 }
 
 export async function registerLeadRoutes(fastify) {
+  // planId é determinado pela sessão (cookie), não pelo path — evita IDOR.
   fastify.get('/leads/:planId', async (req, reply) => {
-    const { planId } = req.params;
-    if (!VALID_ID.test(planId)) {
-      reply.code(400);
-      return { error: 'planId inválido.' };
-    }
+    const { planId } = await req.requireSession();
     const lead = await getLead(planId);
     if (!lead) {
       reply.code(404);
@@ -53,11 +50,7 @@ export async function registerLeadRoutes(fastify) {
 
   // upsert progressivo — chamado a cada passo do wizard que capta um campo
   fastify.put('/leads/:planId', async (req, reply) => {
-    const { planId } = req.params;
-    if (!VALID_ID.test(planId)) {
-      reply.code(400);
-      return { error: 'planId inválido.' };
-    }
+    const { planId } = await req.requireSession();
     const fields = pickLeadFields(req.body);
     const lead = await upsertLead(planId, fields);
     return lead;
@@ -84,11 +77,7 @@ export async function registerLeadRoutes(fastify) {
   });
 
   fastify.delete('/leads/:planId', async (req, reply) => {
-    const { planId } = req.params;
-    if (!VALID_ID.test(planId)) {
-      reply.code(400);
-      return { error: 'planId inválido.' };
-    }
+    const { planId } = await req.requireSession();
     const removed = await deleteLead(planId);
     return { ok: true, removed };
   });

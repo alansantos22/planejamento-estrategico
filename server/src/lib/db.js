@@ -7,7 +7,9 @@
  *
  * Conexão: pool do mysql2/promise. Auto-inicializa o schema na primeira chamada.
  */
+import crypto from 'crypto';
 import mysql from 'mysql2/promise';
+import { encrypt, decrypt, hmac, hashIp, randomToken } from './crypto.js';
 
 const {
   DB_HOST = '127.0.0.1',
@@ -40,13 +42,17 @@ const SCHEMA_STATEMENTS = [
     updated_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 
+  // PII (person_name, company_name, email, phone) é gravado CIFRADO em AES-256-GCM.
+  // VARCHAR maior pra acomodar o overhead (~80 chars de IV+tag+versão em base64url).
+  // email_hash = HMAC-SHA256(email) — permite dedup/lookup sem decifrar.
   `CREATE TABLE IF NOT EXISTS leads (
     id              BIGINT       NOT NULL AUTO_INCREMENT PRIMARY KEY,
     plan_id         VARCHAR(64)  NOT NULL UNIQUE,
-    person_name     VARCHAR(160) NULL,
-    company_name    VARCHAR(200) NULL,
-    email           VARCHAR(200) NULL,
-    phone           VARCHAR(40)  NULL,
+    person_name     VARCHAR(512) NULL,
+    company_name    VARCHAR(512) NULL,
+    email           VARCHAR(512) NULL,
+    email_hash      VARCHAR(64)  NULL,
+    phone           VARCHAR(512) NULL,
     status          ENUM('in_progress','completed','abandoned') NOT NULL DEFAULT 'in_progress',
     last_step       VARCHAR(40)  NULL,
     utm_source      VARCHAR(80)  NULL,
@@ -55,9 +61,26 @@ const SCHEMA_STATEMENTS = [
     referrer        VARCHAR(500) NULL,
     created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    KEY idx_email   (email),
-    KEY idx_status  (status),
-    KEY idx_company (company_name)
+    KEY idx_email_hash (email_hash),
+    KEY idx_status     (status)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+  // Sessões — cookie httpOnly. Guardamos só o HMAC do token (token raw nunca toca o disco).
+  `CREATE TABLE IF NOT EXISTS sessions (
+    token_hash  VARCHAR(64)  NOT NULL PRIMARY KEY,
+    plan_id     VARCHAR(64)  NOT NULL,
+    ip_hash     VARCHAR(64)  NULL,
+    created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_plan (plan_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+  // Uso por IP — bloqueia >1 geração do relatório final por IP. IP em HMAC (LGPD).
+  `CREATE TABLE IF NOT EXISTS ip_usage (
+    ip_hash    VARCHAR(64)  NOT NULL PRIMARY KEY,
+    plan_id    VARCHAR(64)  NULL,
+    agent      VARCHAR(40)  NOT NULL,
+    used_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
 ];
 
@@ -71,6 +94,28 @@ const MIGRATIONS = [
               AND column_name = 'public_slug'`,
     apply: `ALTER TABLE plans
             ADD COLUMN public_slug VARCHAR(20) NULL UNIQUE`
+  },
+  {
+    name: 'leads.email_hash',
+    check: `SELECT COUNT(*) AS c FROM information_schema.columns
+            WHERE table_schema = DATABASE() AND table_name = 'leads'
+              AND column_name = 'email_hash'`,
+    apply: `ALTER TABLE leads
+            ADD COLUMN email_hash VARCHAR(64) NULL,
+            ADD KEY idx_email_hash (email_hash)`
+  },
+  // Expande colunas PII para caber o ciphertext (~+80 chars de overhead).
+  {
+    name: 'leads.pii.expand',
+    check: `SELECT IF(CHARACTER_MAXIMUM_LENGTH >= 512, 1, 0) AS c
+            FROM information_schema.columns
+            WHERE table_schema = DATABASE() AND table_name = 'leads'
+              AND column_name = 'email'`,
+    apply: `ALTER TABLE leads
+            MODIFY person_name  VARCHAR(512) NULL,
+            MODIFY company_name VARCHAR(512) NULL,
+            MODIFY email        VARCHAR(512) NULL,
+            MODIFY phone        VARCHAR(512) NULL`
   }
 ];
 
@@ -212,24 +257,51 @@ const LEAD_FIELDS = [
   'referrer'
 ];
 
+// PII gravada CIFRADA. UTM/status/last_step ficam em claro pra agregação.
+const LEAD_ENCRYPTED = new Set(['person_name', 'company_name', 'email', 'phone']);
+
+function encryptLeadFields(fields) {
+  const out = { ...fields };
+  for (const k of Object.keys(out)) {
+    if (LEAD_ENCRYPTED.has(k)) out[k] = encrypt(out[k]);
+  }
+  // Hash determinístico do email pra dedup/lookup
+  if (fields.email) out.email_hash = hmac(fields.email);
+  return out;
+}
+
+function decryptLeadRow(row) {
+  if (!row) return row;
+  const out = { ...row };
+  for (const k of LEAD_ENCRYPTED) {
+    if (out[k] !== undefined && out[k] !== null) {
+      try { out[k] = decrypt(out[k]); } catch (_) { out[k] = null; }
+    }
+  }
+  // email_hash é detalhe de implementação — não retorna pro chamador
+  delete out.email_hash;
+  return out;
+}
+
 export async function upsertLead(planId, fields = {}) {
   await init();
 
-  // Filtra só campos conhecidos e não-undefined
-  const provided = LEAD_FIELDS.filter(k => fields[k] !== undefined && fields[k] !== null);
+  // Filtra só campos conhecidos e não-undefined, depois cifra PII
+  const filtered = {};
+  for (const k of LEAD_FIELDS) {
+    if (fields[k] !== undefined && fields[k] !== null) filtered[k] = fields[k];
+  }
+  const encrypted = encryptLeadFields(filtered);
+  const provided = Object.keys(encrypted);
 
   if (!provided.length) {
-    // Apenas garante linha mínima existindo (caso seja a 1ª gravação sem dado nenhum)
-    await pool.query(
-      `INSERT IGNORE INTO leads (plan_id) VALUES (?)`,
-      [planId]
-    );
+    await pool.query(`INSERT IGNORE INTO leads (plan_id) VALUES (?)`, [planId]);
     return getLead(planId);
   }
 
   const cols = ['plan_id', ...provided];
   const placeholders = cols.map(() => '?').join(', ');
-  const values = [planId, ...provided.map(k => fields[k])];
+  const values = [planId, ...provided.map(k => encrypted[k])];
   const updates = provided.map(k => `${k} = VALUES(${k})`).join(', ');
 
   const sql = `INSERT INTO leads (${cols.join(', ')})
@@ -246,7 +318,7 @@ export async function getLead(planId) {
     'SELECT * FROM leads WHERE plan_id = ? LIMIT 1',
     [planId]
   );
-  return rows[0] || null;
+  return decryptLeadRow(rows[0] || null);
 }
 
 export async function listLeads({ status, limit = 100, offset = 0 } = {}) {
@@ -262,7 +334,80 @@ export async function listLeads({ status, limit = 100, offset = 0 } = {}) {
                LIMIT ? OFFSET ?`;
   params.push(Number(limit), Number(offset));
   const [rows] = await pool.query(sql, params);
-  return rows;
+  return rows.map(decryptLeadRow);
+}
+
+// ============ SESSIONS ============
+// Cookie httpOnly carrega um token aleatório. No banco guardamos apenas o HMAC
+// do token (mesmo padrão de "senha hashed"). O planId é gerado server-side.
+
+function tokenHash(token) {
+  return hmac(token);
+}
+
+function newPlanId() {
+  // Compatível com VALID_ID das rotas (^[a-zA-Z0-9_-]{1,64}$)
+  return crypto.randomBytes(18).toString('base64url'); // 24 chars
+}
+
+/** Cria uma nova sessão e devolve { token, planId }. */
+export async function createSession(ip) {
+  await init();
+  const token = randomToken(32);
+  const planId = newPlanId();
+  await pool.query(
+    `INSERT INTO sessions (token_hash, plan_id, ip_hash) VALUES (?, ?, ?)`,
+    [tokenHash(token), planId, hashIp(ip)]
+  );
+  return { token, planId };
+}
+
+/** Busca a sessão pelo token do cookie. Retorna { planId, ipHash } ou null. */
+export async function findSession(token) {
+  if (!token) return null;
+  await init();
+  const [rows] = await pool.query(
+    'SELECT plan_id, ip_hash FROM sessions WHERE token_hash = ? LIMIT 1',
+    [tokenHash(token)]
+  );
+  if (!rows.length) return null;
+  return { planId: rows[0].plan_id, ipHash: rows[0].ip_hash };
+}
+
+/** Atualiza o IP da sessão (caso de troca de rede). */
+export async function touchSession(token, ip) {
+  if (!token) return;
+  await init();
+  await pool.query(
+    `UPDATE sessions SET ip_hash = ? WHERE token_hash = ?`,
+    [hashIp(ip), tokenHash(token)]
+  );
+}
+
+// ============ IP USAGE (limite 1 relatório final por IP) ============
+
+/** Retorna a linha de uso do IP para um agente específico, se existir. */
+export async function getIpUsage(ip, agent) {
+  await init();
+  const h = hashIp(ip);
+  if (!h) return null;
+  const [rows] = await pool.query(
+    `SELECT plan_id, agent, used_at FROM ip_usage WHERE ip_hash = ? AND agent = ? LIMIT 1`,
+    [h, agent]
+  );
+  return rows[0] || null;
+}
+
+/** Marca o IP como tendo usado o agente. Idempotente — não sobrescreve uso anterior. */
+export async function markIpUsage(ip, planId, agent) {
+  await init();
+  const h = hashIp(ip);
+  if (!h) return false;
+  const [r] = await pool.query(
+    `INSERT IGNORE INTO ip_usage (ip_hash, plan_id, agent) VALUES (?, ?, ?)`,
+    [h, planId, agent]
+  );
+  return r.affectedRows > 0;
 }
 
 export async function deleteLead(planId) {

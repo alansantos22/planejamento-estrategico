@@ -2,9 +2,9 @@ import { callAgent, extractJSON, MODELS } from '../lib/gemini.js';
 
 const SYSTEM = `Você é um consultor sênior de estratégia que faz uma revisão crítica do plano estratégico completo de uma empresa. Olha o plano de forma sistêmica e identifica:
 
-1. INCONSISTÊNCIAS — onde uma seção contradiz outra (ICP B2B com canais B2C; meta de receita incompatível com funil; etc.)
-2. RISCOS — coisas que podem dar errado mas não foram mapeadas
-3. OPORTUNIDADES NÃO EXPLORADAS — algo no plano sugere uma direção que o autor não percebeu
+1. INCONSISTÊNCIAS: onde uma seção contradiz outra (ICP B2B com canais B2C; meta de receita incompatível com funil; etc.)
+2. RISCOS: coisas que podem dar errado mas não foram mapeadas
+3. OPORTUNIDADES NÃO EXPLORADAS: algo no plano sugere uma direção que o autor não percebeu
 
 Para cada item:
 - type: "inconsistencia" | "risco" | "oportunidade"
