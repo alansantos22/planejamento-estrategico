@@ -90,6 +90,9 @@ export function defaultState() {
     actions: [],
     metrics: { cac: '', ltv: '', tickets: '', churn: '' },
 
+    // Relatório da revisão com IA (insightsCoach) — persistido para exportar no PDF.
+    aiReview: null,
+
     ai: {
       backendUrl: 'http://localhost:3001',
       assistantEnabled: false,

@@ -124,8 +124,13 @@ export function buildPayload(agentName, state) {
         monthlyRevenueGoal: state.funnel?.monthlyRevenueGoal,
         segment: company.segment
       }
-    case 'insightsCoach':
-      return { ...base, plan: state }
+    case 'insightsCoach': {
+      // Envia o plano sem o cache de IA nem o relatório anterior — o servidor
+      // não usa esses campos e eles inflam o payload (estouram o limite de body).
+      const { ai, aiReview, ...slimPlan } = state
+      void ai; void aiReview
+      return { ...base, plan: slimPlan }
+    }
     case 'idealCustomerFinder':
       return {
         ...base,

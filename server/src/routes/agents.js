@@ -32,7 +32,7 @@ const agents = {
 
 // Apenas nomes whitelisted são executáveis — :name é validado contra a chave.
 const VALID_NAME = /^[a-zA-Z]{1,40}$/;
-const MAX_BODY_BYTES = 64 * 1024;
+const MAX_BODY_BYTES = 128 * 1024;
 
 export async function registerAgentRoutes(fastify) {
   fastify.get('/agents', async () => ({ agents: Object.keys(agents) }));

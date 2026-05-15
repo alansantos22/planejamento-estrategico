@@ -69,6 +69,21 @@ export function useAiAgent() {
     try {
       const result = await callAgent(backend, agentName, payload)
       if (!result?.error) planStore.cacheAgentResult(cacheKey, result)
+      // Persiste o relatório final no plano para sobreviver ao fechar o modal
+      // e ser exportado no PDF.
+      if (
+        agentName === 'insightsCoach' &&
+        Array.isArray(result?.suggestions) &&
+        result.suggestions.length
+      ) {
+        planStore.plan.aiReview = {
+          suggestions: result.suggestions,
+          executiveSummary: result.executiveSummary || '',
+          topPriority: result.topPriority || '',
+          generatedAt: new Date().toISOString()
+        }
+        planStore.save()
+      }
       uiStore.openModal({
         type: 'ai-result',
         agentName,

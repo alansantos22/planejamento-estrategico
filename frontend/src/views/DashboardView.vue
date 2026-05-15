@@ -55,6 +55,18 @@ const ishikawaEntries = computed(() =>
 
 const aiBackendUrl = computed(() => store.aiBackendUrl)
 
+const AI_TYPE_LABEL = {
+  inconsistencia: 'Inconsistência',
+  risco: 'Risco',
+  oportunidade: 'Oportunidade'
+}
+
+function formatReviewDate(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return isNaN(d) ? '' : d.toLocaleString('pt-BR')
+}
+
 const alertIcon = {
   warning: '⚠',
   danger: '⛔',
@@ -493,9 +505,42 @@ function viewProfile() {
       </div>
 
       <!-- Revisão IA do plano completo -->
-      <div v-if="aiBackendUrl" class="dash-section ai-review-section">
+      <div v-if="aiBackendUrl || plan.aiReview" class="dash-section ai-review-section">
         <h3>🤖 Revisão com IA</h3>
-        <div class="card">
+
+        <div v-if="plan.aiReview" class="card ai-review">
+          <p v-if="plan.aiReview.executiveSummary" class="ai-review__summary">
+            {{ plan.aiReview.executiveSummary }}
+          </p>
+
+          <div
+            v-for="(s, i) in plan.aiReview.suggestions"
+            :key="i"
+            class="ai-review__item"
+            :class="`type-${s.type || 'info'}`"
+          >
+            <h4>
+              <span v-if="s.type" class="ai-review__tag" :class="`tag-${s.type}`">
+                {{ AI_TYPE_LABEL[s.type] || s.type }}
+              </span>
+              {{ s.title || `Item ${i + 1}` }}
+            </h4>
+            <p v-if="s.text || s.content">{{ s.text || s.content }}</p>
+            <p v-if="s.recommendation" class="ai-review__reco">
+              <strong>Recomendação:</strong> {{ s.recommendation }}
+            </p>
+          </div>
+
+          <div v-if="plan.aiReview.topPriority" class="ai-review__priority">
+            <strong>Prioridade máxima:</strong> {{ plan.aiReview.topPriority }}
+          </div>
+
+          <p v-if="plan.aiReview.generatedAt" class="muted ai-review__meta">
+            Gerado em {{ formatReviewDate(plan.aiReview.generatedAt) }}
+          </p>
+        </div>
+
+        <div v-else class="card">
           <p>
             Peça à IA para analisar o plano completo e apontar inconsistências, riscos e
             oportunidades não exploradas.
@@ -594,6 +639,73 @@ function viewProfile() {
 
 .canvas-grid {
   gap: t.$space-3;
+}
+
+/* ===== Revisão com IA ===== */
+.ai-review {
+  &__summary {
+    background: t.$color-bg-soft;
+    border-radius: t.$radius-sm;
+    padding: t.$space-3 t.$space-4;
+    margin: 0 0 t.$space-4;
+    line-height: t.$line-height-relaxed;
+  }
+
+  &__item {
+    background: t.$color-bg-soft;
+    border-left: 4px solid t.$color-primary;
+    border-radius: t.$radius-sm;
+    padding: t.$space-3 t.$space-4;
+    margin-bottom: t.$space-3;
+
+    &.type-inconsistencia { border-left-color: t.$color-danger; }
+    &.type-risco { border-left-color: t.$color-warning; }
+    &.type-oportunidade { border-left-color: t.$color-success; }
+
+    h4 {
+      margin: 0 0 t.$space-2;
+      color: t.$color-primary;
+    }
+
+    p {
+      margin: t.$space-2 0 0;
+      font-size: t.$font-size-sm;
+      line-height: t.$line-height-relaxed;
+    }
+  }
+
+  &__tag {
+    display: inline-block;
+    font-size: t.$font-size-xs;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: t.$radius-pill;
+    margin-right: t.$space-2;
+    vertical-align: middle;
+    background: #6b7280;
+    color: #fff;
+
+    &.tag-inconsistencia { background: t.$color-danger; }
+    &.tag-risco { background: t.$color-warning; }
+    &.tag-oportunidade { background: t.$color-success; }
+  }
+
+  &__priority {
+    background: t.$color-primary-soft;
+    border-left: 4px solid t.$color-primary;
+    border-radius: t.$radius-sm;
+    padding: t.$space-3 t.$space-4;
+    margin-top: t.$space-4;
+    font-size: t.$font-size-sm;
+    line-height: t.$line-height-relaxed;
+  }
+
+  &__meta {
+    margin: t.$space-3 0 0;
+    font-size: t.$font-size-xs;
+  }
 }
 
 /* ===== Strategic Health Score (Fase C) ===== */
