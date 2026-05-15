@@ -1,7 +1,7 @@
 <template>
   <footer class="app-footer">
     <div class="container">
-      <p>MVP gratuito • Plano persistido em SQLite no backend local • Feito por <strong>MeChame</strong></p>
+      <p>Feito por <a href="https://unli.com.br" target="_blank" rel="noopener noreferrer"><strong>Unli Studio</strong></a></p>
     </div>
   </footer>
 </template>
@@ -19,6 +19,16 @@
     text-align: center;
     font-size: t.$font-size-sm;
     color: t.$color-text-light;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      color: t.$color-primary;
+      text-decoration: underline;
+    }
   }
 }
 </style>

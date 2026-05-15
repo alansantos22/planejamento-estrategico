@@ -20,7 +20,10 @@ Retorne APENAS JSON no formato:
 Forneça 3-5 itens por quadrante. Seja específico ao contexto.`;
 
 export async function swotDetector(payload) {
-  const { company = {}, canvas = {}, personas = [] } = payload;
+  const { company = {}, canvas = {}, personas = [], product = [] } = payload;
+  const fmtOfferings = product.length
+    ? product.map((o) => `- ${o.name || '(sem nome)'}${o.description ? `: ${o.description}` : ''}`).join('\n')
+    : '(nenhuma oferta cadastrada)';
   const user = `Empresa: ${company.name || '(sem nome)'} (${company.segment || ''})
 Porte: ${company.size || ''}
 
@@ -32,12 +35,15 @@ Modelo de Negócio (BMC):
 - Atividades: ${canvas.activities || ''}
 - Parceiros: ${canvas.partners || ''}
 
+Ofertas / Produtos:
+${fmtOfferings}
+
 Personas:
 ${personas.map(p => `- ${p.name || 'Persona'}: ${p.pain || 'dor não definida'}`).join('\n') || '(nenhuma)'}
 
 Sugira itens SWOT específicos para esta empresa.`;
 
-  const { text } = await callAgent({ model: MODELS.FLASH, system: SYSTEM, user, maxTokens: 2500, json: true });
+  const { text } = await callAgent({ model: MODELS.FLASH, system: SYSTEM, user, maxTokens: 8000, json: true });
   const parsed = extractJSON(text);
   if (!parsed) return { error: 'Resposta não pôde ser parseada', text };
   return { ...parsed, applicable: true };

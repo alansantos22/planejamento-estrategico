@@ -52,6 +52,7 @@ function setCauses(key, text) {
           :placeholder="`Liste possíveis causas (uma por linha)`"
           :value="getCausesText(cat.key)"
           @input="setCauses(cat.key, $event.target.value)"
+          maxlength="500"
           rows="4"
           style="width:100%;resize:vertical"
         ></textarea>

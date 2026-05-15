@@ -51,7 +51,7 @@ export async function insightsCoach(payload) {
 ${compact}
 \`\`\``;
 
-  const { text } = await callAgent({ model: MODELS.PRO, system: SYSTEM, user, maxTokens: 3000, json: true });
+  const { text } = await callAgent({ model: MODELS.PRO, system: SYSTEM, user, maxTokens: 8000, json: true });
   const parsed = extractJSON(text);
   if (!parsed) return { error: 'Resposta não pôde ser parseada', text };
   return { ...parsed, applicable: false };

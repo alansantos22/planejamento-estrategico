@@ -7,6 +7,8 @@ import BaseInput from '@/components/common/BaseInput.vue'
 import BaseSelect from '@/components/common/BaseSelect.vue'
 import BaseMoneyInput from '@/components/common/BaseMoneyInput.vue'
 import BaseTextarea from '@/components/common/BaseTextarea.vue'
+import BaseButton from '@/components/common/BaseButton.vue'
+import BaseSwitch from '@/components/common/BaseSwitch.vue'
 import FormGrid from '@/components/common/FormGrid.vue'
 import HelpBox from '@/components/common/HelpBox.vue'
 import InfoTooltip from '@/components/common/InfoTooltip.vue'
@@ -52,12 +54,16 @@ const totalEff = computed(() =>
   (p.offerings || []).reduce((s, o) => s + (Number(o.effortPct) || 0), 0)
 )
 
+const MAX_OFFERINGS = 3
+
 function save() { store.save() }
 
 function addOffering() {
   p.offerings = p.offerings || []
+  if (p.offerings.length >= MAX_OFFERINGS) return
   p.offerings.push({
     name: '',
+    description: '',
     type: '',
     nature: '',
     billing: '',
@@ -106,14 +112,36 @@ function openCalculator(i) {
 function closeCalculator() {
   calcOfferingIndex.value = null
 }
-function applyCalculator(result) {
+function writeCalculator(result) {
   const o = calcOffering.value
   if (!o) return
-  o.marginPct = result.marginPct
-  o.markupPct = result.markupPct
-  o.costs = result.costs
+  o.costsPerPlan = result.costsPerPlan
+  if (result.costsPerPlan) {
+    o.tierCosts = result.tierCosts
+    ;(o.pricingTiers || []).forEach((t, i) => {
+      t.marginPct = result.tierMarginPct?.[i] ?? ''
+      t.markupPct = result.tierMarkupPct?.[i] ?? ''
+    })
+    o.marginPct = ''
+    o.markupPct = ''
+  } else {
+    o.costs = result.costs
+    o.marginPct = result.marginPct
+    o.markupPct = result.markupPct
+    o.calcPriceUsed = result.priceUsed
+    o.calcSelectedTierIdx = result.selectedTierIdx
+    o.calcManualPrice = result.manualPrice
+    ;(o.pricingTiers || []).forEach((t) => { t.marginPct = ''; t.markupPct = '' })
+  }
   save()
+}
+function applyCalculator(result) {
+  writeCalculator(result)
   closeCalculator()
+}
+
+function tiersPctSum(o) {
+  return (o.pricingTiers || []).reduce((s, t) => s + (Number(t.revenuePct) || 0), 0)
 }
 </script>
 
@@ -125,10 +153,22 @@ function applyCalculator(result) {
     </HelpBox>
 
     <div v-for="(o, i) in p.offerings" :key="i" class="offering-card">
-      <h5>Oferta #{{ i + 1 }} <button class="btn-icon" @click="removeOffering(i)">×</button></h5>
+      <h5>Oferta #{{ i + 1 }} <BaseButton variant="icon" aria-label="Remover oferta" @click="removeOffering(i)">×</BaseButton></h5>
       <FormGrid :cols="2">
         <BaseField label="Nome da oferta" :span="2">
           <BaseInput v-model="o.name" placeholder="Ex: Plano Pro / Consultoria mensal" @update:model-value="save" />
+        </BaseField>
+        <BaseField :span="2">
+          <template #label>
+            Descrição
+            <InfoTooltip text="Descreva o que a oferta entrega, para quem é e qual problema resolve. Isso alimenta a geração de personas, ICP e SWOT." />
+          </template>
+          <BaseTextarea
+            v-model="o.description"
+            placeholder="Ex: Mentoria individual de 3 meses para fundadores de SaaS que querem sair do zero para os primeiros R$50k/mês. Inclui sessões semanais, revisão de pitch e acesso à comunidade."
+            :rows="3"
+            @update:model-value="save"
+          />
         </BaseField>
         <BaseField>
           <template #label>
@@ -156,26 +196,20 @@ function applyCalculator(result) {
             <span class="pricing-block__title">Preço</span>
             <div class="pricing-block__toggles">
               <div class="pricing-block__toggle" :class="{ 'is-disabled': !!o.onDemand }">
-                <label>
-                  <input
-                    type="checkbox"
-                    :checked="!!o.hasPlans"
-                    :disabled="!!o.onDemand"
-                    @change="o.hasPlans = $event.target.checked; ensureTiers(o); save()"
-                  />
-                  Vendido em planos
-                </label>
+                <BaseSwitch
+                  :model-value="!!o.hasPlans"
+                  :disabled="!!o.onDemand"
+                  @update:model-value="o.hasPlans = $event; ensureTiers(o); save()"
+                />
+                <span class="pricing-block__toggle-label">Vendido em planos</span>
                 <InfoTooltip text="Marque se a oferta tem múltiplos níveis (ex: Básico, Pro, Enterprise). Para cada plano você informa nome e preço." />
               </div>
               <div class="pricing-block__toggle">
-                <label>
-                  <input
-                    type="checkbox"
-                    :checked="!!o.onDemand"
-                    @change="o.onDemand = $event.target.checked; save()"
-                  />
-                  Preço sob demanda
-                </label>
+                <BaseSwitch
+                  :model-value="!!o.onDemand"
+                  @update:model-value="o.onDemand = $event; save()"
+                />
+                <span class="pricing-block__toggle-label">Preço sob demanda</span>
                 <InfoTooltip text="Marque se o preço é definido caso a caso (orçamento personalizado). Comum em consultoria, serviços B2B e projetos sob medida." />
               </div>
             </div>
@@ -194,30 +228,59 @@ function applyCalculator(result) {
           </div>
 
           <div v-else class="pricing-tiers">
+            <div class="pricing-tiers__head">
+              <span>Plano</span>
+              <span>Preço</span>
+              <span>% receita <InfoTooltip text="Quanto desta oferta vem deste plano. Ex: se 70% dos clientes são do plano Pro, coloque 70. A soma dos planos deve dar 100%." /></span>
+              <span></span>
+            </div>
             <div
               v-for="(t, ti) in (o.pricingTiers && o.pricingTiers.length ? o.pricingTiers : [{}])"
               :key="ti"
-              class="pricing-tiers__row"
+              class="pricing-tiers__item"
             >
-              <BaseInput
-                :model-value="t.name"
-                placeholder="Plano (ex: Básico, Pro)"
-                @update:model-value="ensureTiers(o); o.pricingTiers[ti].name = $event; save()"
-              />
-              <BaseMoneyInput
-                :model-value="t.price"
-                placeholder="Ex: 297"
-                @update:model-value="ensureTiers(o); o.pricingTiers[ti].price = $event; save()"
-              />
-              <button
-                type="button"
-                class="btn-icon"
-                :disabled="(o.pricingTiers || []).length <= 1"
-                @click="removeTier(o, ti)"
-                aria-label="Remover plano"
-              >×</button>
+              <div v-if="o.costsPerPlan && (t.marginPct !== '' && t.marginPct !== undefined)" class="tier-cost-badge">
+                Margem <strong>{{ t.marginPct }}%</strong> · Markup <strong>{{ t.markupPct }}%</strong>
+                <button type="button" class="tier-cost-badge__edit" @click="openCalculator(i)">editar custos</button>
+              </div>
+              <div class="pricing-tiers__row">
+                <BaseInput
+                  :model-value="t.name"
+                  placeholder="Plano (ex: Básico, Pro)"
+                  @update:model-value="ensureTiers(o); o.pricingTiers[ti].name = $event; save()"
+                />
+                <BaseMoneyInput
+                  :model-value="t.price"
+                  placeholder="Ex: 297"
+                  @update:model-value="ensureTiers(o); o.pricingTiers[ti].price = $event; save()"
+                />
+                <div class="tier-pct">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    class="tier-pct__input"
+                    :value="t.revenuePct"
+                    placeholder="Ex: 40"
+                    @input="ensureTiers(o); o.pricingTiers[ti].revenuePct = $event.target.value; save()"
+                  />
+                  <span class="tier-pct__suffix">%</span>
+                </div>
+                <BaseButton
+                  variant="icon"
+                  :disabled="(o.pricingTiers || []).length <= 1"
+                  aria-label="Remover plano"
+                  @click="removeTier(o, ti)"
+                >×</BaseButton>
+              </div>
             </div>
-            <button type="button" class="btn-add btn-add--sm" @click="addTier(o)">+ Adicionar plano</button>
+            <div v-if="(o.pricingTiers || []).length > 1" class="pricing-tiers__pct-sum">
+              <span :class="{ 'is-ok': tiersPctSum(o) === 100, 'is-warn': tiersPctSum(o) !== 100 }">
+                Soma: {{ tiersPctSum(o) }}%
+                <span v-if="tiersPctSum(o) !== 100"> (ideal: 100%)</span>
+              </span>
+            </div>
+            <BaseButton variant="add" size="sm" @click="addTier(o)">+ Adicionar plano</BaseButton>
           </div>
         </div>
         <BaseField>
@@ -257,19 +320,26 @@ function applyCalculator(result) {
           </template>
           <div class="input-with-action">
             <BaseInput v-model="o.markupPct" type="number" min="-100" placeholder="Ex: 82" @update:model-value="save" />
-            <button
-              type="button"
+            <BaseButton
+              variant="ghost"
               class="btn-calc"
               title="Calcular markup a partir dos custos"
               aria-label="Calcular markup"
               @click="openCalculator(i)"
-            >🧮</button>
+            >🧮</BaseButton>
           </div>
         </BaseField>
       </FormGrid>
     </div>
 
-    <button class="btn-add" @click="addOffering">+ Adicionar Oferta</button>
+    <BaseButton
+      variant="add"
+      :disabled="(p.offerings || []).length >= MAX_OFFERINGS"
+      @click="addOffering"
+    >+ Adicionar Oferta</BaseButton>
+    <p v-if="(p.offerings || []).length >= MAX_OFFERINGS" class="muted" style="font-size:12px; margin:6px 0 0">
+      Limite de {{ MAX_OFFERINGS }} ofertas para manter a análise de IA enxuta e barata.
+    </p>
 
     <div v-if="analysis.focus" class="card" style="margin-top:16px">
       <h4 style="margin:0 0 10px">Análise 80/20</h4>
@@ -281,12 +351,12 @@ function applyCalculator(result) {
         </div>
         <div class="dash-tile">
           <h4>Estrelas</h4>
-          <div class="big">{{ analysis.stars.map(s => s.name).join(', ') || 'n/d' }}</div>
+          <div class="big">{{ analysis.stars.map(s => s.name).join(', ') || 'Nenhuma' }}</div>
           <div class="desc">eficiência ≥ 1.2</div>
         </div>
         <div class="dash-tile">
           <h4>Sangrias</h4>
-          <div class="big">{{ analysis.bleeders.map(b => b.name).join(', ') || 'n/d' }}</div>
+          <div class="big">{{ analysis.bleeders.map(b => b.name).join(', ') || 'Nenhuma' }}</div>
           <div class="desc">esforço alto, receita baixa</div>
         </div>
       </div>
@@ -303,6 +373,7 @@ function applyCalculator(result) {
       :offering="calcOffering"
       @close="closeCalculator"
       @apply="applyCalculator"
+      @auto-save="writeCalculator"
     />
   </div>
 </template>
@@ -344,18 +415,11 @@ function applyCalculator(result) {
     font-size: t.$font-size-sm;
     color: t.$color-text-light;
 
-    label {
-      display: inline-flex;
-      align-items: center;
-      gap: t.$space-2;
-      cursor: pointer;
-      user-select: none;
-    }
+    &.is-disabled .pricing-block__toggle-label { opacity: 0.5; cursor: not-allowed; }
+  }
 
-    input { cursor: pointer; }
-    input:disabled { cursor: not-allowed; }
-
-    &.is-disabled label { opacity: 0.5; cursor: not-allowed; }
+  &__toggle-label {
+    user-select: none;
   }
 }
 
@@ -364,11 +428,37 @@ function applyCalculator(result) {
   flex-direction: column;
   gap: t.$space-2;
 
+  &__head {
+    display: grid;
+    grid-template-columns: 1fr 1fr 90px auto;
+    gap: t.$space-2;
+    font-size: t.$font-size-xs;
+    text-transform: uppercase;
+    color: t.$color-text-light;
+    font-weight: t.$font-weight-semi;
+    padding: 0 t.$space-1;
+    align-items: center;
+  }
+
   &__row {
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: 1fr 1fr 90px auto;
     gap: t.$space-2;
     align-items: center;
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: t.$space-1;
+  }
+
+  &__pct-sum {
+    font-size: t.$font-size-xs;
+    padding: 0 t.$space-1;
+
+    .is-ok { color: #16a34a; font-weight: t.$font-weight-semi; }
+    .is-warn { color: t.$color-warning; font-weight: t.$font-weight-semi; }
   }
 
   &__empty {
@@ -382,10 +472,73 @@ function applyCalculator(result) {
   }
 }
 
-.btn-add--sm {
-  align-self: flex-start;
-  font-size: t.$font-size-sm;
-  padding: t.$space-2 t.$space-3;
+.tier-cost-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: t.$space-2;
+  font-size: t.$font-size-xs;
+  color: t.$color-text-light;
+  background: t.$color-primary-soft;
+  border: 1px solid t.$color-primary;
+  border-radius: t.$radius-md;
+  padding: t.$space-1 t.$space-3;
+
+  strong { color: t.$color-text; }
+
+  &__edit {
+    margin-left: t.$space-1;
+    background: none;
+    border: none;
+    color: t.$color-primary;
+    font-size: t.$font-size-xs;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+
+    &:hover { opacity: 0.75; }
+  }
+}
+
+.tier-pct {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid t.$color-border;
+  border-radius: t.$radius-md;
+  background: t.$color-surface;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:focus-within {
+    @include t.focus-ring;
+  }
+
+  &__input {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: t.$color-text;
+    font-family: inherit;
+    padding: t.$space-2 t.$space-2;
+    font-size: t.$font-size-sm;
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button { -webkit-appearance: none; }
+  }
+
+  &__suffix {
+    display: flex;
+    align-items: center;
+    padding: 0 t.$space-2;
+    background: t.$color-bg-soft;
+    border-left: 1px solid t.$color-border;
+    color: t.$color-text-light;
+    font-size: t.$font-size-sm;
+    font-weight: t.$font-weight-semi;
+    user-select: none;
+  }
 }
 
 .input-with-action {
@@ -396,29 +549,25 @@ function applyCalculator(result) {
   > :first-child { flex: 1; }
 }
 
-.btn-calc {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.btn-calc.btn-calc {
   padding: 0 t.$space-3;
   background: t.$color-bg-soft;
   border: 1px solid t.$color-border;
-  border-radius: t.$radius-md;
-  cursor: pointer;
   font-size: t.$font-size-md;
-  transition: background 0.15s, border-color 0.15s;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: t.$color-primary-soft;
     border-color: t.$color-primary;
+    color: t.$color-text;
   }
-
-  &:focus-visible { @include t.focus-ring; }
 }
 
 @include t.respond-down(t.$bp-md) {
+  .pricing-tiers__head { display: none; }
+
   .pricing-tiers__row {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr 90px auto;
+    grid-template-rows: auto auto;
 
     :first-child { grid-column: 1 / -1; }
   }

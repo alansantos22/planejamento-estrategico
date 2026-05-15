@@ -22,6 +22,7 @@ function save() { store.save() }
           <BaseTextarea
             v-model="v.purpose"
             placeholder="Ex: Mostrar que o Brasil é capaz de inovar em escala global"
+            :maxlength="300"
             @update:model-value="save"
           />
         </BaseField>
@@ -29,6 +30,7 @@ function save() { store.save() }
           <BaseTextarea
             v-model="v.core"
             placeholder="Ex: Criatividade na resolução de problemas"
+            :maxlength="300"
             @update:model-value="save"
           />
         </BaseField>
@@ -36,6 +38,7 @@ function save() { store.save() }
           <BaseTextarea
             v-model="v.vision3to5"
             placeholder="Ex: Ser o maior hub de inovação e tecnologia do Brasil"
+            :maxlength="300"
             @update:model-value="save"
           />
         </BaseField>
@@ -43,6 +46,7 @@ function save() { store.save() }
           <BaseTextarea
             v-model="v.bigDream"
             placeholder="Ex: Atingir status de unicórnio em 7 anos"
+            :maxlength="300"
             @update:model-value="save"
           />
         </BaseField>

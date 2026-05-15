@@ -80,8 +80,16 @@ export async function registerAgentRoutes(fastify) {
 
     try {
       const result = await agent(safeBody);
-      // Sucesso — marca o IP como tendo consumido a cota (só pra ONE_SHOT_AGENTS).
-      if (ONE_SHOT_AGENTS.has(name)) {
+      // Só consome a cota do IP se o relatório foi REALMENTE gerado.
+      // Um resultado de erro ({error}) ou vazio (ex: JSON da IA truncado) não
+      // pode queimar a cota — senão uma falha impede o usuário de tentar de novo.
+      const reportOk =
+        result &&
+        typeof result === 'object' &&
+        !result.error &&
+        (name !== 'insightsCoach' ||
+          (Array.isArray(result.suggestions) && result.suggestions.length > 0));
+      if (ONE_SHOT_AGENTS.has(name) && reportOk) {
         markIpUsage(ip, session.planId, name).catch(err =>
           fastify.log.warn({ err }, 'Falha ao gravar ip_usage')
         );

@@ -93,7 +93,7 @@ function setPrimary(i) {
           <BaseInput v-model="p.ageRange" placeholder="Ex: 30-45 anos, classe B" @update:model-value="save" />
         </BaseField>
         <BaseField label="Dor principal" hint="crítico" :span="2">
-          <BaseTextarea v-model="p.pain" placeholder="Ex: Perde 10h/semana com tarefas manuais que poderiam ser automatizadas" @update:model-value="save" />
+          <BaseTextarea v-model="p.pain" placeholder="Ex: Perde 10h/semana com tarefas manuais que poderiam ser automatizadas" :maxlength="300" @update:model-value="save" />
         </BaseField>
         <BaseField label="Gatilho de compra">
           <BaseInput v-model="p.trigger" placeholder="Ex: Após nova contratação que não rende" @update:model-value="save" />

@@ -34,7 +34,7 @@ ${(competition.competitors || []).map(c => `- ${c.name}: ${JSON.stringify(c.scor
 
 Sugira 3 ideias de produto/oferta que aproveitem as forças, atendam às dores das personas e diferenciem dos concorrentes.`;
 
-  const { text } = await callAgent({ model: MODELS.PRO, system: SYSTEM, user, maxTokens: 2000, json: true });
+  const { text } = await callAgent({ model: MODELS.PRO, system: SYSTEM, user, maxTokens: 6000, json: true });
   const parsed = extractJSON(text);
   if (!parsed) return { error: 'Resposta não pôde ser parseada', text };
   return { ...parsed, applicable: true };

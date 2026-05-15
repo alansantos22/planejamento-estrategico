@@ -18,7 +18,7 @@ import {
   getBackendUrl
 } from '@/services/planApi'
 
-const DEBOUNCE_MS = 300
+const DEBOUNCE_MS = 3000
 const LEGACY_SESSION_KEYS = ['mechame_planning_v2', 'mechame_planning_v1']
 
 /** Lê o plano antigo deixado em sessionStorage pela versão pré-backend. */

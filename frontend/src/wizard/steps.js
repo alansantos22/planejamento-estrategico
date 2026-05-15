@@ -20,7 +20,6 @@ const SwotStep        = asyncStep(() => import('./steps/SwotStep.vue'))
 const TowsStep        = asyncStep(() => import('./steps/TowsStep.vue'))
 const IshikawaStep    = asyncStep(() => import('./steps/IshikawaStep.vue'))
 const ProductStep     = asyncStep(() => import('./steps/ProductStep.vue'))
-const PricingStep     = asyncStep(() => import('./steps/PricingStep.vue'))
 const CanvasStep      = asyncStep(() => import('./steps/CanvasStep.vue'))
 const FunnelStep      = asyncStep(() => import('./steps/FunnelStep.vue'))
 const ForecastStep    = asyncStep(() => import('./steps/ForecastStep.vue'))
@@ -90,15 +89,9 @@ export const ALL_STEPS = [
     component: IshikawaStep
   },
   {
-    id: 'pricing',
-    title: 'Posicionamento + Pricing',
-    desc: 'Defina sua mensagem-chave e onde seu preço se posiciona no mercado.',
-    component: PricingStep
-  },
-  {
     id: 'icp',
     title: 'Cliente Ideal (ICP / Personas)',
-    desc: 'Agora que já mapeamos empresa, SWOT, produto e pricing, podemos definir com precisão quem é o cliente ideal.',
+    desc: 'Agora que já mapeamos empresa, SWOT e produto, podemos definir com precisão quem é o cliente ideal.',
     component: IcpStep,
     validate: (plan) => {
       if (!(plan.icp.personas || []).length) return 'Adicione ao menos 1 persona.'

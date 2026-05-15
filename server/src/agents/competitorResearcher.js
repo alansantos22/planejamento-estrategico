@@ -27,7 +27,7 @@ Proposta de valor: ${valueProp || ''}
 
 Liste 3-5 concorrentes prováveis e dê notas 1-5 em Preço, Qualidade, Atendimento e Marca.`;
 
-  const { text } = await callAgent({ model: MODELS.FLASH, system: SYSTEM, user, maxTokens: 2000, json: true });
+  const { text } = await callAgent({ model: MODELS.FLASH, system: SYSTEM, user, maxTokens: 6000, json: true });
   const parsed = extractJSON(text);
   if (!parsed) return { error: 'Resposta não pôde ser parseada', text };
   return { ...parsed, applicable: true };

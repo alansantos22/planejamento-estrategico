@@ -41,18 +41,8 @@ export function defaultState() {
       focusReasoning: ''
     },
 
-    pricing: {
-      statement: { icp: '', problem: '', product: '', benefit: '', competitor: '', reason: '' },
-      currentPrice: '',
-      marketMin: '',
-      marketMedian: '',
-      marketMax: '',
-      targetMargin: '',
-      actualMargin: '',
-      strategy: ''
-    },
-
     funnel: {
+      mode: 'single',
       stages: [
         { name: 'Visitantes', count: '', conversionToNext: '' },
         { name: 'Leads', count: '', conversionToNext: '' },
@@ -64,14 +54,17 @@ export function defaultState() {
       avgTicket: '',
       salesCycleDays: '',
       monthlyRevenueGoal: '',
-      channels: []
+      channels: [],
+      perProduct: []
     },
 
     forecast: {
       scenario: 'realista',
       growthRatePct: '',
       retentionPct: '',
-      months: 12
+      months: 12,
+      mode: 'single',
+      perProduct: []
     },
 
     swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },

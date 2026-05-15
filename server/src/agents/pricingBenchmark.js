@@ -31,7 +31,7 @@ Persona principal: ${(personas[0] || {}).name || ''} (orçamento típico ${(pers
 
 Estime a faixa de preço de mercado para este produto.`;
 
-  const { text } = await callAgent({ model: MODELS.FLASH, system: SYSTEM, user, maxTokens: 1500, json: true });
+  const { text } = await callAgent({ model: MODELS.FLASH, system: SYSTEM, user, maxTokens: 6000, json: true });
   const parsed = extractJSON(text);
   if (!parsed) return { error: 'Resposta não pôde ser parseada', text };
   // formato para a UI:

@@ -24,12 +24,18 @@ Retorne APENAS JSON válido no formato:
 Seja específico e realista, baseado no mercado brasileiro quando relevante.`;
 
 export async function personaDetector(payload) {
-  const { company = {}, segment, valueProp, swot } = payload;
+  const { company = {}, segment, valueProp, swot, product = [] } = payload;
+  const fmtOfferings = product.length
+    ? product.map((o) => `- ${o.name || '(sem nome)'}${o.description ? `: ${o.description}` : ''}`).join('\n')
+    : '(nenhuma oferta cadastrada)';
   const user = `Empresa: ${company.name || '(sem nome)'}
 Segmento: ${segment || company.segment || '(não informado)'}
 Porte: ${company.size || '(não informado)'}
 Região: ${company.region || 'Brasil'}
 Proposta de valor: ${valueProp || '(não informada)'}
+
+Ofertas / Produtos:
+${fmtOfferings}
 
 Resumo SWOT:
 - Forças: ${(swot?.strengths || []).join('; ') || 'n/d'}
@@ -39,7 +45,7 @@ Resumo SWOT:
 
 Sugira 2-3 personas/ICPs para esta empresa.`;
 
-  const { text } = await callAgent({ model: MODELS.FLASH, system: SYSTEM, user, maxTokens: 2500, json: true });
+  const { text } = await callAgent({ model: MODELS.FLASH, system: SYSTEM, user, maxTokens: 8000, json: true });
   const parsed = extractJSON(text);
   if (!parsed) return { error: 'Resposta da IA não pôde ser parseada', text };
   return { ...parsed, applicable: true };

@@ -26,7 +26,7 @@ function save() { store.save() }
   <div class="card">
     <FormGrid :cols="2">
       <BaseField v-for="f in fields" :key="f.key" :label="f.label" :hint="f.hint">
-        <BaseTextarea v-model="canvas[f.key]" :placeholder="f.hint" @update:model-value="save" />
+        <BaseTextarea v-model="canvas[f.key]" :placeholder="f.hint" :maxlength="300" @update:model-value="save" />
       </BaseField>
     </FormGrid>
   </div>

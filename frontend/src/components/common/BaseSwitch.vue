@@ -1,15 +1,17 @@
 <script setup>
 defineProps({
-  modelValue: { type: Boolean, default: false }
+  modelValue: { type: Boolean, default: false },
+  disabled: { type: Boolean, default: false }
 })
 defineEmits(['update:modelValue'])
 </script>
 
 <template>
-  <label class="base-switch">
+  <label class="base-switch" :class="{ 'is-disabled': disabled }">
     <input
       type="checkbox"
       :checked="modelValue"
+      :disabled="disabled"
       @change="$emit('update:modelValue', $event.target.checked)"
     />
     <span class="base-switch__slider" />
@@ -25,6 +27,13 @@ defineEmits(['update:modelValue'])
   width: 52px;
   height: 28px;
   flex-shrink: 0;
+
+  &.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+
+    .base-switch__slider { cursor: not-allowed; }
+  }
 
   input {
     opacity: 0;

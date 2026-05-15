@@ -87,15 +87,104 @@ export async function callAgent({ model, system, user, maxTokens = 2048, json = 
  */
 export function extractJSON(text) {
   if (!text) return null;
-  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const raw = fence ? fence[1] : text;
-  try {
-    return JSON.parse(raw.trim());
-  } catch {
-    const m = raw.match(/[\{\[][\s\S]*[\}\]]/);
-    if (m) {
-      try { return JSON.parse(m[0]); } catch { return null; }
-    }
+
+  // Remove thinking tags que Gemini 2.5 às vezes inclui
+  let cleaned = text.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '').trim();
+
+  // Parse direto
+  try { return JSON.parse(cleaned); } catch {}
+
+  // Dentro de markdown fence
+  const fence = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fence) try { return JSON.parse(fence[1].trim()); } catch {}
+
+  // Fatia a partir do primeiro { ou [
+  const firstBrace   = cleaned.indexOf('{');
+  const firstBracket = cleaned.indexOf('[');
+  const candidates   = [firstBrace, firstBracket].filter(i => i !== -1);
+  if (!candidates.length) {
+    console.error('[extractJSON] nenhum { ou [ encontrado. Início do texto:', cleaned.slice(0, 300));
     return null;
   }
+  const startIdx = Math.min(...candidates);
+  const slice    = cleaned.slice(startIdx);
+
+  try { return JSON.parse(slice); } catch {}
+
+  // Tenta cortar no último } ou ]
+  const lastBrace   = slice.lastIndexOf('}');
+  const lastBracket = slice.lastIndexOf(']');
+  const endIdx      = Math.max(lastBrace, lastBracket);
+
+  if (endIdx !== -1) {
+    try { return JSON.parse(slice.slice(0, endIdx + 1)); } catch {}
+  }
+
+  // Última tentativa: reparar JSON truncado (modelo cortado no meio).
+  // Fecha string aberta, descarta key/valor parcial, e fecha brackets pendentes.
+  const repaired = repairTruncatedJson(slice);
+  if (repaired) {
+    try { return JSON.parse(repaired); } catch {}
+  }
+
+  console.error('[extractJSON] falhou em todos os métodos. Texto completo:', cleaned.slice(0, 500));
+  return null;
+}
+
+function repairTruncatedJson(s) {
+  // Faz uma varredura registrando, a cada posição, o "último ponto seguro":
+  // um índice tal que `s.slice(0, idx)` seguido do fechamento dos brackets
+  // pendentes gere JSON válido. Pontos seguros: depois de `{` `[` `}` `]` ou
+  // imediatamente antes de uma vírgula no nível atual (descartamos a vírgula
+  // e o que vem depois dela).
+  const stack = [];
+  let inString = false;
+  let escape = false;
+  let lastSafeIdx = -1;
+
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (escape) { escape = false; continue; }
+    if (c === '\\') { escape = true; continue; }
+    if (c === '"') { inString = !inString; continue; }
+    if (inString) continue;
+
+    if (c === '{' || c === '[') {
+      stack.push(c);
+      lastSafeIdx = i + 1;
+    } else if (c === '}' || c === ']') {
+      const opener = stack[stack.length - 1];
+      if ((c === '}' && opener === '{') || (c === ']' && opener === '[')) {
+        stack.pop();
+        lastSafeIdx = i + 1;
+      } else {
+        return null;
+      }
+    } else if (c === ',') {
+      lastSafeIdx = i; // corta ANTES da vírgula (descarta o que vier depois)
+    }
+  }
+
+  if (!stack.length && !inString) return null;
+  if (lastSafeIdx < 0) return null;
+
+  let repaired = s.slice(0, lastSafeIdx);
+  // Fecha os brackets que estavam abertos naquele ponto seguro
+  // (precisamos saber quais — refaz a varredura curta até lastSafeIdx)
+  const closeStack = [];
+  let inStr = false, esc = false;
+  for (let i = 0; i < repaired.length; i++) {
+    const c = repaired[i];
+    if (esc) { esc = false; continue; }
+    if (c === '\\') { esc = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === '{' || c === '[') closeStack.push(c);
+    else if (c === '}' || c === ']') closeStack.pop();
+  }
+  while (closeStack.length) {
+    const opener = closeStack.pop();
+    repaired += opener === '{' ? '}' : ']';
+  }
+  return repaired;
 }

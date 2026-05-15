@@ -5,7 +5,7 @@ import { usePlanStore } from '@/stores/plan'
 import {
   overallScore, swotProfile, buildTOWS, topItems,
   icpFitScore, marketAnalysis, competitionAnalysis,
-  productFocusAnalysis, pricingAnalysis, funnelAnalysis,
+  productFocusAnalysis, funnelAnalysis,
   forecastProjection, ltvCacAnalysis, prioritizeActions,
   coherenceChecks, strategicHealthScore
 } from '@/lib/scoring'
@@ -38,7 +38,6 @@ const tows = computed(() => buildTOWS(plan.swot))
 const market = computed(() => marketAnalysis(plan.market || {}))
 const compAn = computed(() => competitionAnalysis(plan.competition || {}))
 const prodAn = computed(() => productFocusAnalysis(plan.product || {}))
-const priceAn = computed(() => pricingAnalysis(plan.pricing || {}))
 const funAn = computed(() => funnelAnalysis(plan.funnel || {}))
 const forec = computed(() => forecastProjection(plan))
 const lc = computed(() => ltvCacAnalysis(plan.metrics || {}))
@@ -175,7 +174,6 @@ function viewProfile() {
           <div class="dash-tile"><h4>Concorrência</h4><div class="big">{{ score.breakdown.competition.toFixed(1) }}/10</div></div>
           <div class="dash-tile"><h4>SWOT</h4><div class="big">{{ score.breakdown.swot.toFixed(1) }}/10</div></div>
           <div class="dash-tile"><h4>Produto-foco</h4><div class="big">{{ score.breakdown.product.toFixed(1) }}/10</div></div>
-          <div class="dash-tile"><h4>Pricing</h4><div class="big">{{ score.breakdown.pricing.toFixed(1) }}/10</div></div>
           <div class="dash-tile"><h4>Funil</h4><div class="big">{{ score.breakdown.funnel.toFixed(1) }}/10</div></div>
           <div class="dash-tile"><h4>Forecast</h4><div class="big">{{ score.breakdown.forecast.toFixed(1) }}/10</div></div>
           <div class="dash-tile"><h4>OKRs</h4><div class="big">{{ score.breakdown.okr.toFixed(1) }}/10</div></div>
@@ -371,36 +369,6 @@ function viewProfile() {
         </div>
       </div>
 
-      <!-- Posicionamento + Pricing -->
-      <div v-if="priceAn.strategy && priceAn.strategy !== 'n/d'" class="dash-section">
-        <h3>Posicionamento + Pricing</h3>
-        <div class="card">
-          <p v-if="plan.pricing?.statement?.icp" class="pricing-statement">
-            <strong>Posicionamento:</strong> Para <em>{{ plan.pricing.statement.icp }}</em>,
-            que <em>{{ plan.pricing.statement.problem }}</em>,
-            oferecemos <em>{{ plan.pricing.statement.product }}</em>
-            que <em>{{ plan.pricing.statement.benefit }}</em>,
-            diferente de <em>{{ plan.pricing.statement.competitor }}</em>
-            porque <em>{{ plan.pricing.statement.reason }}</em>.
-          </p>
-          <div class="dash-grid">
-            <div class="dash-tile">
-              <h4>Estratégia</h4>
-              <div class="big">{{ priceAn.strategy }}</div>
-              <div class="desc"><BaseBadge :variant="priceAn.color">{{ priceAn.label }}</BaseBadge></div>
-            </div>
-            <div class="dash-tile">
-              <h4>Preço atual</h4>
-              <div class="big">R$ {{ plan.pricing.currentPrice || 'n/d' }}</div>
-            </div>
-            <div class="dash-tile">
-              <h4>Mediana mercado</h4>
-              <div class="big">R$ {{ plan.pricing.marketMedian || 'n/d' }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Funil de Vendas (com mensagem completa) -->
       <div v-if="funAn.neededClients" class="dash-section">
         <h3>Funil de Vendas</h3>
@@ -590,15 +558,6 @@ function viewProfile() {
 
 .product-focus__reason {
   margin-top: t.$space-3;
-}
-
-.pricing-statement {
-  margin-bottom: t.$space-3;
-  line-height: t.$line-height-relaxed;
-
-  em {
-    font-style: italic;
-  }
 }
 
 .funnel-summary {

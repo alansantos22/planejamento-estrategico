@@ -78,10 +78,7 @@ const dimLabels = {
 }
 
 const tagline = computed(() => {
-  const st = plan.value?.pricing?.statement || {}
-  if (st.benefit && st.icp) return `Para ${st.icp.toLowerCase()}, ${st.benefit.toLowerCase()}.`
   if (plan.value?.vision?.purpose) return plan.value.vision.purpose
-  if (st.product) return st.product
   return null
 })
 
@@ -229,9 +226,6 @@ function printProfile() {
               Meta de
               <strong>{{ formatMoney(plan.funnel.monthlyRevenueGoal) }}/mês</strong>
               com ticket médio de {{ formatMoney(plan.funnel.avgTicket) }}.
-            </p>
-            <p v-if="plan.pricing?.strategy">
-              Estratégia de preço: <strong>{{ plan.pricing.strategy }}</strong>.
             </p>
           </section>
 

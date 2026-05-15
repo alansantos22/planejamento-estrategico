@@ -43,7 +43,7 @@ function save() { store.save() }
           <BaseInput v-model="m.timeframeMonths" type="number" placeholder="12" @update:model-value="save" />
         </BaseField>
         <BaseField label="Notas / fontes" hint="de onde vieram os números" :span="2">
-          <BaseTextarea v-model="m.notes" placeholder="Ex: IBGE, ABComm, relatórios de associação setorial..." @update:model-value="save" />
+          <BaseTextarea v-model="m.notes" placeholder="Ex: IBGE, ABComm, relatórios de associação setorial..." :maxlength="300" @update:model-value="save" />
         </BaseField>
       </FormGrid>
 

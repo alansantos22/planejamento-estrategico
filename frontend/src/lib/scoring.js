@@ -252,46 +252,6 @@ export function productFocusAnalysis(product) {
   return { focus, stars, bleeders, enriched, score: clamp(score, 0, 10) }
 }
 
-// ===== Pricing =====
-export function pricingAnalysis(pricing) {
-  const cur = Number(pricing.currentPrice) || 0
-  const min = Number(pricing.marketMin) || 0
-  const med = Number(pricing.marketMedian) || 0
-  const max = Number(pricing.marketMax) || 0
-
-  if (!cur || !med) {
-    return { strategy: 'n/d', position: 0, score: 0, label: 'Defina preço atual e mediana de mercado', color: 'info' }
-  }
-
-  const position = ((cur - min) / Math.max(1, max - min)) * 100
-  let strategy, label, color
-  if (cur < med * 0.7) {
-    strategy = 'Penetração'
-    label = 'Preço agressivo: ganhar mercado rápido, margem apertada'
-    color = 'info'
-  } else if (cur < med * 1.1) {
-    strategy = 'Competitivo'
-    label = 'Alinhado com o mercado: diferenciação precisa estar em outra dimensão'
-    color = 'success'
-  } else if (cur < med * 1.5) {
-    strategy = 'Premium'
-    label = 'Acima do mercado: exige valor percebido claro'
-    color = 'warning'
-  } else {
-    strategy = 'Skim'
-    label = 'Muito acima do mercado: segmento de nicho'
-    color = 'warning'
-  }
-
-  let score = 4
-  const st = pricing.statement || {}
-  const stmtFields = ['icp', 'problem', 'product', 'benefit']
-  score += stmtFields.filter((f) => (st[f] || '').trim()).length * 0.75
-  if (min && max) score += 1
-  if (pricing.targetMargin) score += 1
-  return { strategy, label, color, position, score: clamp(score, 0, 10) }
-}
-
 // ===== Funil =====
 export function funnelAnalysis(funnel) {
   const stages = funnel.stages || []
@@ -341,25 +301,16 @@ export function funnelAnalysis(funnel) {
 }
 
 // ===== Forecast =====
-export function forecastProjection(state) {
-  const f = state.forecast || {}
-  const funnel = state.funnel || {}
-  const ticket = Number(funnel.avgTicket) || 0
-  const retention = clamp(Number(f.retentionPct) || 0, 0, 100) / 100
-  const growth = (Number(f.growthRatePct) || 0) / 100
-  const months = Math.min(36, Math.max(1, Number(f.months) || 12))
-
-  const stages = funnel.stages || []
-  const lastCount = Number(stages.length ? stages[stages.length - 1].count : 0) || 0
-
-  if (!ticket || !lastCount) return { months: [], totalRevenue: 0, scenario: f.scenario, score: 0 }
-
+// Projeta uma série mensal a partir de uma base inicial, crescimento e retenção.
+function projectSeries({ ticket, lastCount, growthPct, retentionPct, months, scenario }) {
+  const retention = clamp(Number(retentionPct) || 0, 0, 100) / 100
+  const growth = (Number(growthPct) || 0) / 100
   const scenarios = {
     pessimista: { g: growth * 0.5, r: retention * 0.9 },
     realista: { g: growth, r: retention },
     otimista: { g: growth * 1.5, r: Math.min(1, retention * 1.05) }
   }
-  const sc = scenarios[f.scenario] || scenarios.realista
+  const sc = scenarios[scenario] || scenarios.realista
 
   const points = []
   let activeBase = lastCount
@@ -371,12 +322,120 @@ export function forecastProjection(state) {
     totalRevenue += monthRevenue
     points.push({ month: m, newClients, activeBase, revenue: monthRevenue })
   }
+  return { points, totalRevenue }
+}
+
+// Projeta um produto a partir de "novos clientes / mês".
+// recorrente: a base acumula (retenção); unico: receita = só os novos do mês.
+function projectProductSeries({ ticket, perMonth, growthPct, retentionPct, months, scenario, billingType }) {
+  const retention = clamp(Number(retentionPct) || 0, 0, 100) / 100
+  const growth = (Number(growthPct) || 0) / 100
+  const scenarios = {
+    pessimista: { g: growth * 0.5, r: retention * 0.9 },
+    realista: { g: growth, r: retention },
+    otimista: { g: growth * 1.5, r: Math.min(1, retention * 1.05) }
+  }
+  const sc = scenarios[scenario] || scenarios.realista
+  const oneTime = billingType === 'unico'
+
+  const points = []
+  let activeBase = 0
+  let totalRevenue = 0
+  for (let m = 1; m <= months; m++) {
+    const newClients = Math.round(perMonth * Math.pow(1 + sc.g, m - 1))
+    let revenue
+    if (oneTime) {
+      // pagamento único: cada cliente paga uma vez, sem base recorrente
+      activeBase = newClients
+      revenue = newClients * ticket
+    } else {
+      activeBase = Math.round(activeBase * sc.r) + newClients
+      revenue = activeBase * ticket
+    }
+    totalRevenue += revenue
+    points.push({ month: m, newClients, activeBase, revenue })
+  }
+  return { points, totalRevenue }
+}
+
+export function forecastProjection(state) {
+  const f = state.forecast || {}
+  const funnel = state.funnel || {}
+  const months = Math.min(36, Math.max(1, Number(f.months) || 12))
+  const scenario = f.scenario
+
+  if (f.mode === 'perProduct') {
+    const items = (f.perProduct || []).slice(0, 3)
+    const valid = items.filter(
+      (it) => (Number(it.avgTicket) || 0) > 0 && (Number(it.currentClients) || 0) > 0
+    )
+    if (!valid.length) {
+      return { months: [], totalRevenue: 0, scenario, score: 0, perProduct: [] }
+    }
+    const merged = []
+    const perProduct = []
+    let totalRevenue = 0
+    valid.forEach((it) => {
+      const billingType = it.billingType === 'unico' ? 'unico' : 'recorrente'
+      const series = projectProductSeries({
+        ticket: Number(it.avgTicket) || 0,
+        perMonth: Number(it.currentClients) || 0,
+        growthPct: it.growthRatePct,
+        retentionPct: it.retentionPct,
+        months,
+        scenario,
+        billingType
+      })
+      perProduct.push({
+        name: it.productName || '(sem nome)',
+        billingType,
+        totalRevenue: series.totalRevenue,
+        months: series.points.map((p) => ({
+          month: p.month,
+          revenue: p.revenue,
+          activeBase: p.activeBase
+        }))
+      })
+      totalRevenue += series.totalRevenue
+      series.points.forEach((p, i) => {
+        if (!merged[i]) merged[i] = { month: i + 1, newClients: 0, activeBase: 0, revenue: 0 }
+        merged[i].newClients += p.newClients
+        merged[i].activeBase += p.activeBase
+        merged[i].revenue += p.revenue
+      })
+    })
+    let score = 6
+    if (valid.every((it) => it.growthRatePct !== undefined && it.growthRatePct !== '')) score += 2
+    if (months >= 12) score += 2
+    return { months: merged, totalRevenue, scenario, score: clamp(score, 0, 10), perProduct }
+  }
+
+  const ticket = Number(funnel.avgTicket) || 0
+  const stages = funnel.stages || []
+  const lastCount = Number(stages.length ? stages[stages.length - 1].count : 0) || 0
+  if (!ticket || !lastCount) {
+    return { months: [], totalRevenue: 0, scenario, score: 0, perProduct: [] }
+  }
+  const series = projectSeries({
+    ticket,
+    lastCount,
+    growthPct: f.growthRatePct,
+    retentionPct: f.retentionPct,
+    months,
+    scenario
+  })
 
   let score = 3
   if (Number(f.retentionPct)) score += 3
   if (f.growthRatePct !== undefined && f.growthRatePct !== '') score += 2
   if (months >= 12) score += 2
-  return { months: points, totalRevenue, scenario: f.scenario, score: clamp(score, 0, 10) }
+  return {
+    months: series.points,
+    totalRevenue: series.totalRevenue,
+    scenario,
+    score: clamp(score, 0, 10),
+    perProduct: []
+  }
 }
 
 // ===== Coerência cruzada =====
@@ -424,15 +483,6 @@ export function coherenceChecks(state) {
     })
   )
 
-  const lc = ltvCacAnalysis(state.metrics || {})
-  const pr = pricingAnalysis(state.pricing || {})
-  if (lc.status === 'ideal' && pr.strategy === 'Penetração') {
-    alerts.push({
-      level: 'info',
-      msg: 'LTV/CAC ideal + preço de Penetração: você pode estar deixando margem na mesa, considere ajustar preço.'
-    })
-  }
-
   const focus = productFocusAnalysis(state.product || {}).focus
   if (
     focus &&
@@ -465,15 +515,10 @@ function clarezaDim(state) {
   const v = state.vision || {}
   const visionFields = ['purpose', 'core', 'vision3to5', 'bigDream']
   const visionFilled = visionFields.filter((k) => _filled(v[k])).length
-  const visionPts = (visionFilled / visionFields.length) * 40
+  const visionPts = (visionFilled / visionFields.length) * 60
 
-  const st = (state.pricing || {}).statement || {}
-  const stmtFields = ['icp', 'problem', 'product', 'benefit', 'competitor', 'reason']
-  const stmtFilled = stmtFields.filter((k) => _filled(st[k])).length
-  const stmtPts = (stmtFilled / stmtFields.length) * 40
-
-  const focusPts = _filled((state.product || {}).focusReasoning) ? 20 : 0
-  return clamp(visionPts + stmtPts + focusPts, 0, 100)
+  const focusPts = _filled((state.product || {}).focusReasoning) ? 40 : 0
+  return clamp(visionPts + focusPts, 0, 100)
 }
 
 function mercadoDim(state) {
@@ -523,19 +568,11 @@ function execucaoDim(state) {
 function comercialDim(state) {
   const lc = ltvCacAnalysis(state.metrics || {})
   let lcPts
-  if (lc.status === 'ideal') lcPts = 40
-  else if (lc.status === 'subinvestido') lcPts = 32
-  else if (lc.status === 'aceitavel') lcPts = 24
-  else if (lc.status === 'critico') lcPts = 8
-  else lcPts = 20 // sem-dados: crédito parcial pra não punir modo enxuto
-
-  const pr = pricingAnalysis(state.pricing || {})
-  let pricingPts = 0
-  if (pr.strategy && pr.strategy !== 'n/d') {
-    pricingPts = 15
-    if (pr.score >= 7) pricingPts = 30
-    else if (pr.score >= 5) pricingPts = 22
-  }
+  if (lc.status === 'ideal') lcPts = 50
+  else if (lc.status === 'subinvestido') lcPts = 40
+  else if (lc.status === 'aceitavel') lcPts = 30
+  else if (lc.status === 'critico') lcPts = 10
+  else lcPts = 25 // sem-dados: crédito parcial pra não punir modo enxuto
 
   const funAn = funnelAnalysis(state.funnel || {})
   const stages = (state.funnel || {}).stages || []
@@ -543,14 +580,14 @@ function comercialDim(state) {
   let funnelPts = 0
   if (funAn.allRatesFilled && funAn.reverseFlow.length) {
     const leadsNecessarios = funAn.reverseFlow[0].count
-    if (currentTop && leadsNecessarios <= currentTop * 1.5) funnelPts = 30
-    else if (currentTop && leadsNecessarios <= currentTop * 3) funnelPts = 18
-    else funnelPts = 8
+    if (currentTop && leadsNecessarios <= currentTop * 1.5) funnelPts = 50
+    else if (currentTop && leadsNecessarios <= currentTop * 3) funnelPts = 30
+    else funnelPts = 15
   } else if (funAn.neededClients) {
-    funnelPts = 10
+    funnelPts = 18
   }
 
-  return clamp(lcPts + pricingPts + funnelPts, 0, 100)
+  return clamp(lcPts + funnelPts, 0, 100)
 }
 
 function diferenciacaoDim(state) {
@@ -567,14 +604,10 @@ function dimExplainClareza(state) {
   if (!['purpose', 'core', 'vision3to5', 'bigDream'].some((k) => _filled(v[k]))) {
     return 'preencha propósito, valores e visão de 3 a 5 anos para ancorar o plano.'
   }
-  const st = (state.pricing || {}).statement || {}
-  if (!['icp', 'problem', 'product', 'benefit'].every((k) => _filled(st[k]))) {
-    return 'complete o statement de posicionamento (para quem, problema, produto, benefício).'
-  }
   if (!_filled((state.product || {}).focusReasoning)) {
     return 'justifique qual é o produto-foco e por quê (campo "Justificativa" em Produto).'
   }
-  return 'detalhe propósito, posicionamento e foco para deixar a estratégia inequívoca.'
+  return 'detalhe propósito e foco para deixar a estratégia inequívoca.'
 }
 
 function dimExplainMercado(state) {
@@ -619,11 +652,6 @@ function dimExplainComercial(state) {
     return 'preencha CAC, LTV e churn para validar a equação econômica.'
   }
 
-  const pr = pricingAnalysis(state.pricing || {})
-  if (!pr.strategy || pr.strategy === 'n/d') {
-    return 'defina preço atual e mediana de mercado para posicionar pricing.'
-  }
-
   const funAn = funnelAnalysis(state.funnel || {})
   if (!funAn.allRatesFilled) return 'complete as taxas de conversão entre estágios do funil.'
   const currentTop = Number((state.funnel?.stages || [])[0]?.count) || 0
@@ -631,7 +659,7 @@ function dimExplainComercial(state) {
   if (currentTop && leadsNecessarios > currentTop * 1.5) {
     return `funil reverso exige ${leadsNecessarios} entradas, você tem ${currentTop}: gap grande na meta.`
   }
-  return 'refine LTV/CAC, pricing e viabilidade do funil para sustentar a meta.'
+  return 'refine LTV/CAC e viabilidade do funil para sustentar a meta.'
 }
 
 function dimExplainDiferenciacao(state) {
@@ -787,7 +815,6 @@ export function overallScore(state) {
   const marketScore = marketAnalysis(state.market || {}).score
   const competitionScore = competitionAnalysis(state.competition || {}).score
   const productScore = productFocusAnalysis(state.product || {}).score
-  const pricingScore = pricingAnalysis(state.pricing || {}).score
   const funnelScore = funnelAnalysis(state.funnel || {}).score
   const forecastScore = forecastProjection(state).score
 
@@ -809,9 +836,8 @@ export function overallScore(state) {
     icp: 0.13,
     market: 0.08,
     competition: 0.08,
-    product: 0.1,
-    pricing: 0.08,
-    funnel: 0.1,
+    product: 0.12,
+    funnel: 0.16,
     forecast: 0.06
   }
   const totalW = Object.values(weights).reduce((s, x) => s + x, 0)
@@ -826,7 +852,6 @@ export function overallScore(state) {
     marketScore * weights.market * norm +
     competitionScore * weights.competition * norm +
     productScore * weights.product * norm +
-    pricingScore * weights.pricing * norm +
     funnelScore * weights.funnel * norm +
     forecastScore * weights.forecast * norm +
     metricsScore * metricsWeight
@@ -848,7 +873,6 @@ export function overallScore(state) {
       market: round1(marketScore),
       competition: round1(competitionScore),
       product: round1(productScore),
-      pricing: round1(pricingScore),
       funnel: round1(funnelScore),
       forecast: round1(forecastScore),
       metrics: round1(metricsScore)

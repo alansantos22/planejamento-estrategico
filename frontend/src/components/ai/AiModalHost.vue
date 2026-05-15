@@ -12,9 +12,15 @@ import { formatMoney } from '@/lib/formatters'
 const uiStore = useUiStore()
 const modal = computed(() => uiStore.modal)
 
+const TYPE_LABEL = {
+  inconsistencia: 'Inconsistência',
+  risco: 'Risco',
+  oportunidade: 'Oportunidade'
+}
+
 function suggestionText(s) {
   if (typeof s === 'string') return s
-  return s.text || s.content || JSON.stringify(s, null, 2)
+  return s.text || s.content || ''
 }
 </script>
 
@@ -98,13 +104,31 @@ function suggestionText(s) {
         </p>
       </template>
       <template v-else-if="Array.isArray(modal.result?.suggestions) && modal.result.suggestions.length">
+        <p v-if="modal.result.executiveSummary" class="ai-summary">
+          {{ modal.result.executiveSummary }}
+        </p>
         <div
           v-for="(s, i) in modal.result.suggestions"
           :key="i"
           class="ai-suggestion"
+          :class="`ai-suggestion--${s.type || 'info'}`"
         >
-          <h5 v-if="s.title">{{ s.title }}</h5>
-          <pre>{{ suggestionText(s) }}</pre>
+          <h5>
+            <span v-if="s.type" class="ai-tag" :class="`ai-tag--${s.type}`">
+              {{ TYPE_LABEL[s.type] || s.type }}
+            </span>
+            {{ s.title || `Item ${i + 1}` }}
+          </h5>
+          <p v-if="suggestionText(s)">{{ suggestionText(s) }}</p>
+          <p v-if="s.recommendation" class="ai-reco">
+            <strong>Recomendação:</strong> {{ s.recommendation }}
+          </p>
+          <p v-if="!suggestionText(s) && !s.recommendation" class="muted">
+            <em>O assistente não detalhou este item.</em>
+          </p>
+        </div>
+        <div v-if="modal.result.topPriority" class="ai-priority">
+          <strong>Prioridade máxima:</strong> {{ modal.result.topPriority }}
         </div>
       </template>
       <div v-else-if="modal.result?.text" class="ai-suggestion">
@@ -230,6 +254,48 @@ function suggestionText(s) {
   }
 }
 
+.ai-summary {
+  background: t.$color-bg-soft;
+  border-radius: t.$radius-sm;
+  padding: t.$space-3 t.$space-4 - 2px;
+  margin-bottom: t.$space-4;
+  font-size: t.$font-size-sm;
+  line-height: 1.5;
+}
+
+.ai-priority {
+  background: t.$color-primary-soft;
+  border-left: 4px solid t.$color-primary;
+  padding: t.$space-3 t.$space-4 - 2px;
+  border-radius: t.$radius-sm;
+  margin-top: t.$space-4;
+  font-size: t.$font-size-sm;
+  line-height: 1.5;
+}
+
+.ai-reco {
+  margin-top: t.$space-2 !important;
+  font-size: t.$font-size-sm;
+}
+
+.ai-tag {
+  display: inline-block;
+  font-size: t.$font-size-xs;
+  font-weight: t.$font-weight-semi;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-right: t.$space-2;
+  vertical-align: middle;
+  background: #6b7280;
+  color: #fff;
+
+  &--inconsistencia { background: #ef4444; }
+  &--risco { background: #f59e0b; }
+  &--oportunidade { background: #16a34a; }
+}
+
 .ai-suggestion {
   background: t.$color-bg-soft;
   border-left: 4px solid t.$color-primary;
@@ -240,6 +306,10 @@ function suggestionText(s) {
   &--alt {
     border-left-color: #f59e0b;
   }
+
+  &--inconsistencia { border-left-color: #ef4444; }
+  &--risco { border-left-color: #f59e0b; }
+  &--oportunidade { border-left-color: #16a34a; }
 
   h5 {
     margin: 0 0 t.$space-2 - 2px;

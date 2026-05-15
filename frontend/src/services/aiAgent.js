@@ -13,7 +13,6 @@ export const AGENT_LABELS = {
   problemDetector: 'Detectar problemas',
   competitorResearcher: 'Pesquisar concorrentes',
   productIdeaGenerator: 'Gerar ideias de produto',
-  pricingBenchmark: 'Benchmark de preço',
   marketSizer: 'Estimar TAM / SAM / SOM',
   salesFunnelArchitect: 'Modelar funil de vendas',
   insightsCoach: 'Relatório final',
@@ -71,12 +70,18 @@ export function buildPayload(agentName, state) {
         ...base,
         segment: company.segment,
         valueProp: state.canvas?.valueProp,
-        swot: summarizeSwot(state.swot)
+        swot: summarizeSwot(state.swot),
+        product: (state.product?.offerings || []).map((o) => ({ name: o.name, description: o.description, type: o.type }))
       }
     case 'idealPersonaCoach':
       return { ...base, personas: state.icp?.personas || [] }
     case 'swotDetector':
-      return { ...base, canvas: state.canvas, personas: state.icp?.personas || [] }
+      return {
+        ...base,
+        canvas: state.canvas,
+        personas: state.icp?.personas || [],
+        product: (state.product?.offerings || []).map((o) => ({ name: o.name, description: o.description, type: o.type }))
+      }
     case 'problemDetector':
       return {
         ...base,
@@ -98,13 +103,6 @@ export function buildPayload(agentName, state) {
         swot: summarizeSwot(state.swot),
         competition: summarizeCompetition(state.competition)
       }
-    case 'pricingBenchmark':
-      return {
-        ...base,
-        segment: company.segment,
-        product: state.product?.offerings || [],
-        personas: state.icp?.personas || []
-      }
     case 'marketSizer':
       return {
         ...base,
@@ -115,7 +113,12 @@ export function buildPayload(agentName, state) {
     case 'salesFunnelArchitect':
       return {
         ...base,
+        funnelMode: state.funnel?.mode || 'single',
         personas: state.icp?.personas || [],
+        product: state.product?.offerings || [],
+        productFocus: state.product?.focusReasoning,
+        valueProp: state.canvas?.valueProp,
+        channels: state.canvas?.channels,
         avgTicket: state.funnel?.avgTicket,
         salesCycleDays: state.funnel?.salesCycleDays,
         monthlyRevenueGoal: state.funnel?.monthlyRevenueGoal,
@@ -126,13 +129,14 @@ export function buildPayload(agentName, state) {
     case 'idealCustomerFinder':
       return {
         ...base,
+        vision: state.vision,
         valueProp: state.canvas?.valueProp,
         canvas: state.canvas,
         swot: summarizeSwot(state.swot),
         personas: state.icp?.personas || [],
         competition: summarizeCompetition(state.competition),
         product: state.product?.offerings || [],
-        pricing: state.pricing,
+        productFocus: state.product?.focusReasoning,
         funnel: summarizeFunnel(state.funnel)
       }
     default:
@@ -198,7 +202,8 @@ export function applySuggestions(agentName, result, state) {
       state.icp = state.icp || { personas: [] }
       ;(result.idealCustomers || []).forEach((c) => {
         state.icp.personas.push({
-          name: c.name || '',
+          name: c.productName ? `${c.name || 'Persona'} (${c.productName})` : (c.name || ''),
+          productName: c.productName || '',
           role: c.role || '',
           ageRange: c.ageRange || '',
           companySize: c.companySize || '',
@@ -225,6 +230,74 @@ export function applySuggestions(agentName, result, state) {
         })
       )
       break
+    case 'salesFunnelArchitect': {
+      const raw = result.raw || {}
+      state.funnel = state.funnel || {}
+      const isPerProduct = raw.mode === 'perProduct'
+
+      if (!isPerProduct && Array.isArray(raw.stages) && raw.stages.length) {
+        const prev = state.funnel.stages || []
+        state.funnel.stages = raw.stages.map((s, i) => {
+          const match = prev.find((p) => (p.name || '').toLowerCase() === (s.name || '').toLowerCase())
+          const isLast = i === raw.stages.length - 1
+          return {
+            name: s.name || '',
+            count: match?.count || '',
+            conversionToNext: isLast ? null : (s.typicalRate ?? '')
+          }
+        })
+      }
+      if (!isPerProduct && Array.isArray(raw.channelRecommendations) && raw.channelRecommendations.length) {
+        state.funnel.channels = state.funnel.channels || []
+        raw.channelRecommendations.forEach((c) => {
+          const exists = state.funnel.channels.some((x) => (x.name || '').toLowerCase() === (c.name || '').toLowerCase())
+          if (!exists) {
+            state.funnel.channels.push({
+              name: c.name || '',
+              mixPct: c.mixPct ?? '',
+              costPerLead: c.costPerLeadEstimate ?? ''
+            })
+          }
+        })
+      }
+      if (isPerProduct && Array.isArray(raw.perProduct)) {
+        const prevPP = state.funnel.perProduct || []
+        state.funnel.perProduct = raw.perProduct.map((p) => {
+          const prevMatch = prevPP.find((x) => (x.productName || '').toLowerCase() === (p.productName || '').toLowerCase())
+          const stages = (p.stages || []).map((s, i, arr) => {
+            const isLast = i === arr.length - 1
+            const prevStage = prevMatch?.stages?.find((ps) => (ps.name || '').toLowerCase() === (s.name || '').toLowerCase())
+            return {
+              name: s.name || '',
+              count: prevStage?.count || '',
+              conversionToNext: isLast ? null : (s.typicalRate ?? ''),
+              benchmark: s.benchmark || '',
+              watchOut: s.watchOut || ''
+            }
+          })
+          const channels = (p.channelRecommendations || []).map((c) => ({
+            name: c.name || '',
+            mixPct: c.mixPct ?? '',
+            costPerLead: c.costPerLeadEstimate ?? '',
+            rationale: c.rationale || ''
+          }))
+          return {
+            productName: p.productName || '',
+            funnelRole: p.funnelRole || '',
+            funnelRoleReason: p.funnelRoleReason || '',
+            avgTicketEstimate: p.avgTicketEstimate || '',
+            bottleneck: p.bottleneck || '',
+            playbook: p.playbook || '',
+            upsellTo: p.upsellTo || '',
+            crossSellTo: p.crossSellTo || '',
+            upsellNotes: p.upsellNotes || '',
+            stages,
+            channels
+          }
+        })
+      }
+      break
+    }
     case 'marketSizer': {
       const raw = result.raw || {}
       state.market = state.market || {}
