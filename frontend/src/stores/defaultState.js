@@ -14,7 +14,7 @@ export function defaultState() {
     mode: 'enxuto',
     currentStep: 0,
 
-    company: { name: '', segment: '', size: '', employees: '', revenue: '', age: '', region: '' },
+    company: { name: '', segment: '', size: '', employees: '', revenue: '', age: '', region: '', email: '', phone: '' },
 
     vision: { purpose: '', core: '', vision3to5: '', bigDream: '' },
 

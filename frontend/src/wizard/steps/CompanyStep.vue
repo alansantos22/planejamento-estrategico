@@ -69,7 +69,18 @@ function save() { store.save() }
       <BaseField label="Região de atuação" hint="opcional">
         <BaseInput v-model="c.region" placeholder="Ex: Brasil, Sudeste, ou Global" @update:model-value="save" />
       </BaseField>
+      <BaseField label="E-mail de contato" hint="para montar seu perfil">
+        <BaseInput v-model="c.email" type="email" placeholder="Ex: contato@suaempresa.com" @update:model-value="save" />
+      </BaseField>
+      <BaseField label="Telefone de contato" hint="para montar seu perfil">
+        <BaseInput v-model="c.phone" type="tel" placeholder="Ex: (11) 99999-9999" @update:model-value="save" />
+      </BaseField>
     </FormGrid>
+
+    <HelpBox style="margin-top: 12px;">
+      Pedimos <strong>e-mail e telefone</strong> para montar o perfil da sua empresa —
+      eles aparecem como dados de contato no perfil gerado a partir do plano.
+    </HelpBox>
 
     <div class="ai-toggle">
       <div class="ai-toggle__text">

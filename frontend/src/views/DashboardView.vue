@@ -7,8 +7,9 @@ import {
   icpFitScore, marketAnalysis, competitionAnalysis,
   productFocusAnalysis, funnelAnalysis,
   forecastProjection, ltvCacAnalysis, prioritizeActions,
-  coherenceChecks, strategicHealthScore
+  coherenceChecks, strategicHealthScore, planGaps
 } from '@/lib/scoring'
+import { filteredSteps } from '@/wizard/steps'
 import { formatMoney, ishikawaCauseLabel } from '@/lib/formatters'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
@@ -33,6 +34,21 @@ const dimColor = (v) => (v >= 80 ? 'success' : v >= 65 ? 'good' : v >= 50 ? 'war
 const penaltyTotal = computed(() =>
   Math.abs(health.value.penalties.reduce((s, p) => s + p.points, 0))
 )
+
+const wizardSteps = computed(() => filteredSteps(plan.mode))
+const gaps = computed(() => planGaps(plan))
+const gapsCount = computed(() => gaps.value.reduce((n, g) => n + g.items.length, 0))
+
+function stepTitle(stepId) {
+  return wizardSteps.value.find((s) => s.id === stepId)?.title || stepId
+}
+
+function goToStep(stepId) {
+  const idx = wizardSteps.value.findIndex((s) => s.id === stepId)
+  if (idx < 0) return
+  store.setStep(idx)
+  router.push({ name: 'wizard' })
+}
 const profile = computed(() => swotProfile(plan.swot))
 const tows = computed(() => buildTOWS(plan.swot))
 const market = computed(() => marketAnalysis(plan.market || {}))
@@ -115,6 +131,25 @@ function viewProfile() {
           <div v-if="health.penalties.length" class="health-info__penalty">
             −{{ penaltyTotal }} pts em penalidades ({{ health.penalties.length }})
           </div>
+        </div>
+      </div>
+
+      <!-- O que falta preencher -->
+      <div class="dash-section">
+        <details v-if="gaps.length" class="health-gaps" open>
+          <summary>📋 O que falta preencher ({{ gapsCount }} {{ gapsCount === 1 ? 'item' : 'itens' }})</summary>
+          <p class="health-gaps__hint">Clique em uma seção para ir direto até ela e completar os campos pendentes.</p>
+          <div v-for="g in gaps" :key="g.stepId" class="gap-step">
+            <button type="button" class="gap-step__link" @click="goToStep(g.stepId)">
+              {{ stepTitle(g.stepId) }} →
+            </button>
+            <ul class="gap-item-list">
+              <li v-for="(it, i) in g.items" :key="i">{{ it }}</li>
+            </ul>
+          </div>
+        </details>
+        <div v-else class="health-gaps health-gaps--done">
+          ✓ Todas as seções do plano estão preenchidas.
         </div>
       </div>
 
@@ -888,6 +923,74 @@ function viewProfile() {
   line-height: t.$line-height-relaxed;
 
   li { margin-bottom: t.$space-1 + 2px; }
+}
+
+.health-gaps {
+  background: t.$color-surface;
+  border: 1px solid t.$color-border;
+  border-left: 4px solid t.$color-warning;
+  border-radius: t.$radius-lg;
+  padding: t.$space-4 t.$space-5;
+  box-shadow: t.$shadow-md;
+
+  > summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: t.$color-warning;
+    list-style: none;
+
+    &::-webkit-details-marker { display: none; }
+    &::after {
+      content: '▾';
+      float: right;
+      transition: transform 0.2s;
+    }
+  }
+
+  &[open] > summary::after { transform: rotate(180deg); }
+
+  &--done {
+    border-left-color: t.$color-success;
+    color: t.$color-success;
+    font-weight: 600;
+  }
+
+  &__hint {
+    margin: t.$space-2 0 t.$space-3;
+    font-size: t.$font-size-sm;
+    color: t.$color-text-light;
+  }
+}
+
+.gap-step {
+  & + & {
+    margin-top: t.$space-3;
+    padding-top: t.$space-3;
+    border-top: 1px dashed t.$color-border;
+  }
+
+  &__link {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: t.$font-size-md;
+    font-weight: 600;
+    color: t.$color-primary;
+    text-align: left;
+
+    &:hover { text-decoration: underline; }
+  }
+}
+
+.gap-item-list {
+  margin: t.$space-1 + 2px 0 0;
+  padding-left: t.$space-5;
+  font-size: t.$font-size-sm;
+  color: t.$color-text;
+  line-height: t.$line-height-relaxed;
+
+  li { margin-bottom: 2px; }
 }
 
 @include t.respond-down(t.$bp-md) {

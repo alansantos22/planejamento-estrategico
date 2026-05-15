@@ -467,6 +467,18 @@ export function coherenceChecks(state) {
     }
   }
 
+  // Meta de receita anual não pode ultrapassar o SOM (mercado alcançável em 12 meses).
+  const som = Number(state.market?.som) || 0
+  if (som && goal) {
+    const goalAnnual = goal * 12
+    if (goalAnnual > som) {
+      alerts.push({
+        level: 'warning',
+        msg: `Meta anual (~R$ ${Math.round(goalAnnual).toLocaleString('pt-BR')}) excede o SOM (R$ ${Math.round(som).toLocaleString('pt-BR')}) em ${(goalAnnual / som).toFixed(1)}x; revise a meta ou o tamanho do mercado alcançável.`
+      })
+    }
+  }
+
   ;(state.okrs || []).forEach((o) =>
     (o.krs || []).forEach((kr) => {
       const m = (kr.text || '').match(/(\d{2,5})\s*(clientes|usuarios|usuários|leads|vendas)/i)
@@ -512,12 +524,16 @@ export function coherenceChecks(state) {
 const _filled = (v) => !!(v && String(v).trim())
 
 function clarezaDim(state) {
+  const focusFilled = _filled((state.product || {}).focusReasoning)
+  // Modo enxuto não tem o passo Visão — clareza vem só da justificativa do foco.
+  if (state.mode !== 'completo') return focusFilled ? 100 : 0
+
   const v = state.vision || {}
   const visionFields = ['purpose', 'core', 'vision3to5', 'bigDream']
   const visionFilled = visionFields.filter((k) => _filled(v[k])).length
   const visionPts = (visionFilled / visionFields.length) * 60
 
-  const focusPts = _filled((state.product || {}).focusReasoning) ? 40 : 0
+  const focusPts = focusFilled ? 40 : 0
   return clamp(visionPts + focusPts, 0, 100)
 }
 
@@ -600,11 +616,18 @@ function diferenciacaoDim(state) {
 }
 
 function dimExplainClareza(state) {
+  const focusFilled = _filled((state.product || {}).focusReasoning)
+  if (state.mode !== 'completo') {
+    if (!focusFilled) {
+      return 'justifique qual é o produto-foco e por quê (campo "Justificativa" em Produto).'
+    }
+    return 'detalhe a justificativa do produto-foco para deixar a estratégia inequívoca.'
+  }
   const v = state.vision || {}
   if (!['purpose', 'core', 'vision3to5', 'bigDream'].some((k) => _filled(v[k]))) {
     return 'preencha propósito, valores e visão de 3 a 5 anos para ancorar o plano.'
   }
-  if (!_filled((state.product || {}).focusReasoning)) {
+  if (!focusFilled) {
     return 'justifique qual é o produto-foco e por quê (campo "Justificativa" em Produto).'
   }
   return 'detalhe propósito e foco para deixar a estratégia inequívoca.'
@@ -702,7 +725,9 @@ export function strategicHealthScore(state) {
   const visionAnyFilled = ['purpose', 'core', 'vision3to5', 'bigDream'].some((k) =>
     _filled((state.vision || {})[k])
   )
-  if (!visionAnyFilled) penalties.push({ reason: 'Visão estratégica vazia', points: -5 })
+  // Só penaliza Visão no modo completo — no modo enxuto o passo Visão nem aparece.
+  if (state.mode === 'completo' && !visionAnyFilled)
+    penalties.push({ reason: 'Visão estratégica vazia', points: -5 })
 
   const personas = (state.icp && state.icp.personas) || []
   if (!personas.length) penalties.push({ reason: 'ICP sem nenhuma persona definida', points: -5 })
@@ -791,6 +816,161 @@ export function strategicHealthScore(state) {
     penalties,
     explanations
   }
+}
+
+// ===== Lacunas do plano — o que falta preencher =====
+// Retorna [{ stepId, items: ['descrição do que falta', ...] }] apenas para
+// os passos que têm pendências, respeitando o modo (enxuto vs completo).
+export function planGaps(state) {
+  const isCompleto = state.mode === 'completo'
+  const gaps = []
+  const add = (stepId, items) => {
+    const real = items.filter(Boolean)
+    if (real.length) gaps.push({ stepId, items: real })
+  }
+
+  add('company', [!_filled((state.company || {}).name) && 'Nome da empresa'])
+
+  if (isCompleto) {
+    const v = state.vision || {}
+    add('vision', [
+      !_filled(v.purpose) && 'Propósito do negócio',
+      !_filled(v.core) && 'Valores essenciais',
+      !_filled(v.vision3to5) && 'Visão de 3 a 5 anos',
+      !_filled(v.bigDream) && 'Grande sonho (BHAG)'
+    ])
+  }
+
+  const m = state.market || {}
+  add('market', [
+    !_filled(m.tam) && 'TAM — tamanho do mercado total',
+    !_filled(m.sam) && 'SAM — mercado endereçável',
+    !_filled(m.som) && 'SOM — mercado alcançável'
+  ])
+
+  const offerings = (state.product || {}).offerings || []
+  add('product', [
+    !offerings.some((o) => _filled(o.name)) && 'Pelo menos uma oferta/produto',
+    !_filled((state.product || {}).focusReasoning) && 'Justificativa do produto-foco'
+  ])
+
+  const comp = state.competition || {}
+  add('competition', [
+    (comp.competitors || []).filter((c) => _filled(c.name)).length < 3 &&
+      'Pelo menos 3 concorrentes mapeados',
+    (comp.criteria || []).length < 4 && 'Pelo menos 4 critérios de comparação'
+  ])
+
+  const swot = state.swot || {}
+  const hasQuad = (k) => (swot[k] || []).some((it) => _filled(it.text))
+  add('swot', [
+    !hasQuad('strengths') && 'Pelo menos uma Força',
+    !hasQuad('weaknesses') && 'Pelo menos uma Fraqueza',
+    !hasQuad('opportunities') && 'Pelo menos uma Oportunidade',
+    !hasQuad('threats') && 'Pelo menos uma Ameaça'
+  ])
+
+  const personas = (state.icp || {}).personas || []
+  const icpItems = []
+  if (!personas.length) {
+    icpItems.push('Pelo menos uma persona de cliente ideal')
+  } else {
+    if (!personas.some((p) => p.primary)) icpItems.push('Marcar uma persona como primária')
+    personas.forEach((p, i) => {
+      const label = _filled(p.name) ? `Persona "${p.name}"` : `Persona ${i + 1}`
+      const miss = []
+      if (!_filled(p.pain)) miss.push('dor')
+      if (!_filled(p.budget)) miss.push('orçamento')
+      if (!_filled(p.authority)) miss.push('autoridade de compra')
+      if (miss.length) icpItems.push(`${label}: falta ${miss.join(', ')}`)
+    })
+  }
+  add('icp', icpItems)
+
+  const funnel = state.funnel || {}
+  const subRatesMissing = (st) =>
+    (st || []).length > 1 && st.slice(0, -1).some((s) => !(Number(s.conversionToNext) > 0))
+  if (funnel.mode === 'perProduct') {
+    // Múltiplos funis: ticket médio fica em cada sub-funil, não no campo global.
+    const subs = funnel.perProduct || []
+    const funnelItems = []
+    if (!_filled(funnel.monthlyRevenueGoal)) funnelItems.push('Meta de receita mensal (total)')
+    if (!subs.length) {
+      funnelItems.push('Pelo menos um sub-funil por produto')
+    } else {
+      subs.forEach((sub, i) => {
+        const label = _filled(sub.productName)
+          ? `Sub-funil "${sub.productName}"`
+          : `Sub-funil ${i + 1}`
+        const miss = []
+        if (!_filled(sub.avgTicketEstimate)) miss.push('ticket médio')
+        if (subRatesMissing(sub.stages)) miss.push('taxas de conversão entre etapas')
+        if (miss.length) funnelItems.push(`${label}: falta ${miss.join(', ')}`)
+      })
+    }
+    add('funnel', funnelItems)
+  } else {
+    const stages = funnel.stages || []
+    add('funnel', [
+      !stages.length && 'Etapas do funil de vendas',
+      !_filled(funnel.avgTicket) && 'Ticket médio',
+      !_filled(funnel.monthlyRevenueGoal) && 'Meta de receita mensal',
+      subRatesMissing(stages) && 'Taxas de conversão entre as etapas'
+    ])
+  }
+
+  const f = state.forecast || {}
+  if (f.mode !== 'perProduct') {
+    add('forecast', [
+      !_filled(f.retentionPct) && 'Taxa de retenção mensal',
+      !_filled(f.growthRatePct) && 'Taxa de crescimento mensal'
+    ])
+  }
+
+  if (isCompleto) {
+    const met = state.metrics || {}
+    add('metrics', [
+      !_filled(met.cac) && 'CAC — custo de aquisição de cliente',
+      !_filled(met.ltv) && 'LTV — valor do cliente ao longo do tempo'
+    ])
+  }
+
+  const okrs = state.okrs || []
+  const okrItems = []
+  if (!okrs.some((o) => _filled(o.objective))) {
+    okrItems.push('Pelo menos um objetivo')
+  } else {
+    let totalKrs = 0
+    let measurable = 0
+    okrs.forEach((o) =>
+      (o.krs || []).forEach((kr) => {
+        if (_filled(kr.text)) {
+          totalKrs++
+          if (isMeasurable(kr.text)) measurable++
+        }
+      })
+    )
+    if (totalKrs === 0) okrItems.push('Resultados-chave para os objetivos')
+    else if (measurable / totalKrs < 0.6)
+      okrItems.push('Tornar os resultados-chave mensuráveis (número, % ou prazo)')
+  }
+  add('okrs', okrItems)
+
+  const actions = (state.actions || []).filter((a) => _filled(a.what))
+  const actionItems = []
+  if (!actions.length) {
+    actionItems.push('Pelo menos uma ação no plano 5W2H')
+  } else {
+    if (actions.length < 3) actionItems.push('Cadastrar pelo menos 3 ações prioritárias')
+    const noDeadline = actions.filter((a) => !_filled(a.when)).length
+    if (noDeadline)
+      actionItems.push(
+        `Definir prazo ("Quando") em ${noDeadline} ${noDeadline === 1 ? 'ação' : 'ações'}`
+      )
+  }
+  add('actions', actionItems)
+
+  return gaps
 }
 
 // ===== Score Geral =====

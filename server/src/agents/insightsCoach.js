@@ -12,6 +12,8 @@ Para cada item:
 - text: explicação com evidências do próprio plano (cite seções)
 - recommendation: 1 ação concreta
 
+IMPORTANTE: NUNCA cite nomes técnicos de campos, chaves ou caminhos do JSON — isso inclui chaves (ex: "company.revenue", "funnel.avgTicket", "billingType", "calcPriceUsed") e índices de array (ex: "product.offerings[1]", "forecast.perProduct[2]"). O usuário não conhece a estrutura interna dos dados. Sempre descreva em linguagem natural: identifique o item pelo nome real (ex: "o produto Alexandria Cursos", "o ticket médio do Foorge") e descreva o campo pelo seu significado (ex: "o tipo de cobrança", "o ticket médio informado no forecast", "o preço calculado").
+
 Retorne JSON:
 {
   "suggestions": [{type, title, text, recommendation}, ...],

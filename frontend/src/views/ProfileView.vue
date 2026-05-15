@@ -4,7 +4,15 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePlanStore } from '@/stores/plan'
 import { migrate } from '@/stores/defaultState'
 import { getPublicProfile, sharePlan } from '@/services/planApi'
-import { strategicHealthScore, icpFitScore, marketAnalysis, prioritizeActions } from '@/lib/scoring'
+import {
+  strategicHealthScore,
+  icpFitScore,
+  marketAnalysis,
+  prioritizeActions,
+  swotProfile,
+  competitionAnalysis,
+  forecastProjection
+} from '@/lib/scoring'
 import { formatMoney } from '@/lib/formatters'
 import { generateLogo } from '@/lib/logoGen'
 import BaseButton from '@/components/common/BaseButton.vue'
@@ -69,6 +77,39 @@ const primaryPersonaFit = computed(() => (primaryPersona.value ? icpFitScore(pri
 const market = computed(() => marketAnalysis(plan.value?.market || {}))
 const topActions = computed(() => prioritizeActions(plan.value?.actions || []).slice(0, 5))
 
+const isCompleto = computed(() => plan.value?.mode === 'completo')
+
+// Estratégia comercial: no modo perProduct o ticket fica em cada sub-funil (texto livre),
+// não no campo global — por isso o card antigo mostrava "R$ 0".
+const commercial = computed(() => {
+  const f = plan.value?.funnel || {}
+  const goal = Number(f.monthlyRevenueGoal) || 0
+  if (f.mode === 'perProduct') {
+    const perProduct = (f.perProduct || [])
+      .filter((s) => (s.productName || '').trim() && (s.avgTicketEstimate || '').toString().trim())
+      .map((s) => ({ name: s.productName, ticket: s.avgTicketEstimate }))
+    return { goal, avgTicket: 0, perProduct }
+  }
+  return { goal, avgTicket: Number(f.avgTicket) || 0, perProduct: [] }
+})
+
+const hasSwot = computed(() => {
+  const s = plan.value?.swot || {}
+  return ['strengths', 'weaknesses', 'opportunities', 'threats'].some((k) =>
+    (s[k] || []).some((it) => (it.text || '').trim())
+  )
+})
+const swot = computed(() => swotProfile(plan.value?.swot || {}))
+const competition = computed(() => competitionAnalysis(plan.value?.competition || {}))
+const forecast = computed(() => forecastProjection(plan.value || {}))
+const aiReview = computed(() => plan.value?.aiReview || null)
+
+// Percentuais minúsculos arredondam para "0.0%" e parecem erro — mostra "<0.1%".
+function fmtPct(n) {
+  if (n > 0 && n < 0.05) return '<0.1%'
+  return n.toFixed(1) + '%'
+}
+
 const dimLabels = {
   clareza: 'Clareza',
   mercado: 'Mercado',
@@ -88,7 +129,20 @@ const sizeLabel = computed(() => {
   return s
 })
 
-const lead = computed(() => plan.value?.lead || {})
+const ageLabel = computed(() => {
+  const a = company.value.age
+  if (!a && a !== 0) return ''
+  const n = Number(a)
+  if (!n) return ''
+  return `${n} ${n === 1 ? 'ano' : 'anos'}`
+})
+
+// Contato: usa os campos da empresa; mantém `lead` legado como fallback.
+const contact = computed(() => {
+  const c = company.value
+  const lead = plan.value?.lead || {}
+  return { email: c.email || lead.email || '', phone: c.phone || lead.phone || '' }
+})
 
 async function shareProfile() {
   sharing.value = true
@@ -157,7 +211,7 @@ function printProfile() {
           <p v-if="tagline" class="profile-header__tagline">{{ tagline }}</p>
           <div class="profile-header__meta">
             <span v-if="company.segment">🏷 {{ company.segment }}</span>
-            <span v-if="company.age">⏱ {{ company.age }}</span>
+            <span v-if="ageLabel">⏱ {{ ageLabel }}</span>
             <span v-if="company.region">🌐 {{ company.region }}</span>
           </div>
         </div>
@@ -208,24 +262,72 @@ function printProfile() {
                 class="pyr-row sam"
                 :style="{ width: Math.max(15, Math.min(95, market.samOfTam)) + '%' }"
               >
-                <span>SAM</span><span>{{ formatMoney(market.sam) }} ({{ market.samOfTam.toFixed(1) }}%)</span>
+                <span>SAM</span><span>{{ formatMoney(market.sam) }} ({{ fmtPct(market.samOfTam) }})</span>
               </div>
               <div
                 class="pyr-row som"
                 :style="{ width: Math.max(8, Math.min(60, market.somOfSam)) + '%' }"
               >
-                <span>SOM</span><span>{{ formatMoney(market.som) }} ({{ market.somOfSam.toFixed(1) }}%)</span>
+                <span>SOM</span><span>{{ formatMoney(market.som) }} ({{ fmtPct(market.somOfSam) }})</span>
               </div>
             </div>
           </section>
 
           <!-- Estratégia comercial -->
-          <section v-if="plan.funnel?.monthlyRevenueGoal || plan.funnel?.avgTicket" class="profile-card">
+          <section
+            v-if="commercial.goal || commercial.avgTicket || commercial.perProduct.length"
+            class="profile-card"
+          >
             <h3>Estratégia comercial</h3>
-            <p v-if="plan.funnel?.monthlyRevenueGoal">
-              Meta de
-              <strong>{{ formatMoney(plan.funnel.monthlyRevenueGoal) }}/mês</strong>
-              com ticket médio de {{ formatMoney(plan.funnel.avgTicket) }}.
+            <p v-if="commercial.goal">
+              Meta de <strong>{{ formatMoney(commercial.goal) }}/mês</strong><span
+                v-if="commercial.avgTicket"
+              >
+                com ticket médio de {{ formatMoney(commercial.avgTicket) }}</span
+              >.
+            </p>
+            <ul v-if="commercial.perProduct.length" class="ticket-list">
+              <li v-for="(p, i) in commercial.perProduct" :key="i">
+                <strong>{{ p.name }}:</strong> {{ p.ticket }}
+              </li>
+            </ul>
+          </section>
+
+          <!-- Projeção de receita -->
+          <section v-if="forecast.months.length" class="profile-card">
+            <h3>Projeção de receita</h3>
+            <p>
+              Cenário <strong>{{ forecast.scenario }}</strong>: receita acumulada de
+              <strong>{{ formatMoney(forecast.totalRevenue) }}</strong>
+              em {{ forecast.months.length }} meses.
+            </p>
+          </section>
+
+          <!-- Estratégia SWOT (apenas preview interno) -->
+          <section v-if="!isPublic && hasSwot" class="profile-card">
+            <h3>Estratégia (SWOT)</h3>
+            <p><strong>{{ swot.strategy }}.</strong> {{ swot.description }}</p>
+          </section>
+
+          <!-- Diferenciação competitiva (apenas preview interno) -->
+          <section v-if="!isPublic && competition.rankings.length" class="profile-card">
+            <h3>Diferenciação competitiva</h3>
+            <p>
+              Diferenciação média de
+              <strong>{{ (competition.differentiationScore >= 0 ? '+' : '') + competition.differentiationScore.toFixed(2) }}</strong>
+              frente aos concorrentes.
+              <span v-if="competition.whitespace.length">
+                Espaços em branco no mercado: {{ competition.whitespace.join(', ') }}.
+              </span>
+            </p>
+          </section>
+
+          <!-- Revisão com IA (apenas preview interno) -->
+          <section v-if="!isPublic && aiReview" class="profile-card">
+            <h3>🤖 Revisão com IA</h3>
+            <p v-if="aiReview.executiveSummary">{{ aiReview.executiveSummary }}</p>
+            <p v-if="aiReview.topPriority" class="ai-priority">
+              <strong>Prioridade máxima:</strong> {{ aiReview.topPriority }}
             </p>
           </section>
 
@@ -244,21 +346,24 @@ function printProfile() {
 
         <!-- COLUNA LATERAL -->
         <aside class="profile-side">
-          <section v-if="!isPublic && (lead.email || lead.phone)" class="profile-card profile-card--side">
+          <section v-if="contact.email || contact.phone" class="profile-card profile-card--side">
             <h4>Contato</h4>
-            <p v-if="lead.email">✉ {{ lead.email }}</p>
-            <p v-if="lead.phone">📱 {{ lead.phone }}</p>
+            <p v-if="contact.email">✉ {{ contact.email }}</p>
+            <p v-if="contact.phone">📱 {{ contact.phone }}</p>
           </section>
 
-          <section v-if="sizeLabel || company.revenue || company.region" class="profile-card profile-card--side">
+          <section
+            v-if="sizeLabel || company.revenue || company.region || ageLabel"
+            class="profile-card profile-card--side"
+          >
             <h4>Detalhes</h4>
             <p v-if="sizeLabel"><strong>Porte:</strong> {{ sizeLabel }}</p>
             <p v-if="company.revenue"><strong>Faturamento:</strong> {{ company.revenue }}</p>
             <p v-if="company.region"><strong>Região:</strong> {{ company.region }}</p>
-            <p v-if="company.age"><strong>Idade:</strong> {{ company.age }}</p>
+            <p v-if="ageLabel"><strong>Tempo de operação:</strong> {{ ageLabel }}</p>
           </section>
 
-          <section v-if="health" class="profile-card profile-card--side">
+          <section v-if="!isPublic && health" class="profile-card profile-card--side">
             <h4>Score por dimensão</h4>
             <div class="side-bars">
               <div v-for="(value, key) in health.breakdown" :key="key" class="side-bar">
@@ -271,6 +376,16 @@ function printProfile() {
                 </div>
               </div>
             </div>
+          </section>
+
+          <section
+            v-if="!isPublic && health && health.explanations.length"
+            class="profile-card profile-card--side"
+          >
+            <h4>Pontos a melhorar</h4>
+            <ul class="side-tips">
+              <li v-for="(e, i) in health.explanations" :key="i">{{ e }}</li>
+            </ul>
           </section>
         </aside>
       </div>
@@ -491,6 +606,32 @@ function printProfile() {
   line-height: t.$line-height-relaxed;
 
   li { margin-bottom: t.$space-2; }
+}
+
+.ticket-list {
+  margin: t.$space-2 0 0;
+  padding-left: t.$space-5;
+  font-size: t.$font-size-md;
+  line-height: t.$line-height-relaxed;
+
+  li { margin-bottom: t.$space-1; }
+}
+
+.ai-priority {
+  background: t.$color-primary-soft;
+  border-left: 4px solid t.$color-primary;
+  border-radius: t.$radius-sm;
+  padding: t.$space-2 t.$space-3;
+}
+
+.side-tips {
+  margin: 0;
+  padding-left: t.$space-4 + 2px;
+  font-size: t.$font-size-sm;
+  color: t.$color-text;
+  line-height: t.$line-height-relaxed;
+
+  li { margin-bottom: t.$space-1 + 2px; }
 }
 
 /* Side bars (compactas) */
