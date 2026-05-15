@@ -15,6 +15,10 @@ import BaseButton from '@/components/common/BaseButton.vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
 import AiHelperButton from '@/components/ai/AiHelperButton.vue'
 import { throttleClick } from '@/lib/debounce'
+import {
+  ArrowLeft, ArrowRight, Eye, Printer, ClipboardList, CheckCircle2,
+  Lightbulb, AlertTriangle, OctagonAlert, Info, Search, Bot, Dot
+} from 'lucide-vue-next'
 
 const store = usePlanStore()
 const router = useRouter()
@@ -84,10 +88,10 @@ function formatReviewDate(iso) {
 }
 
 const alertIcon = {
-  warning: '⚠',
-  danger: '⛔',
-  info: 'ℹ',
-  success: '✓'
+  warning: AlertTriangle,
+  danger: OctagonAlert,
+  info: Info,
+  success: CheckCircle2
 }
 
 function goBack() {
@@ -113,9 +117,9 @@ function viewProfile() {
       <div class="dash-head">
         <h2>Resumo do Plano Estratégico</h2>
         <div class="dash-actions">
-          <BaseButton variant="ghost" @click="goBack">← Editar</BaseButton>
-          <BaseButton variant="ghost" @click="viewProfile">👁 Ver perfil</BaseButton>
-          <BaseButton variant="primary" @click="printPlan">🖨️ Imprimir / PDF</BaseButton>
+          <BaseButton variant="ghost" @click="goBack"><ArrowLeft :size="16" /> Editar</BaseButton>
+          <BaseButton variant="ghost" @click="viewProfile"><Eye :size="16" /> Ver perfil</BaseButton>
+          <BaseButton variant="primary" @click="printPlan"><Printer :size="16" /> Imprimir / PDF</BaseButton>
         </div>
       </div>
 
@@ -137,11 +141,11 @@ function viewProfile() {
       <!-- O que falta preencher -->
       <div class="dash-section">
         <details v-if="gaps.length" class="health-gaps" open>
-          <summary>📋 O que falta preencher ({{ gapsCount }} {{ gapsCount === 1 ? 'item' : 'itens' }})</summary>
+          <summary><ClipboardList :size="16" /> O que falta preencher ({{ gapsCount }} {{ gapsCount === 1 ? 'item' : 'itens' }})</summary>
           <p class="health-gaps__hint">Clique em uma seção para ir direto até ela e completar os campos pendentes.</p>
           <div v-for="g in gaps" :key="g.stepId" class="gap-step">
             <button type="button" class="gap-step__link" @click="goToStep(g.stepId)">
-              {{ stepTitle(g.stepId) }} →
+              {{ stepTitle(g.stepId) }} <ArrowRight :size="14" />
             </button>
             <ul class="gap-item-list">
               <li v-for="(it, i) in g.items" :key="i">{{ it }}</li>
@@ -149,7 +153,7 @@ function viewProfile() {
           </div>
         </details>
         <div v-else class="health-gaps health-gaps--done">
-          ✓ Todas as seções do plano estão preenchidas.
+          <CheckCircle2 :size="16" /> Todas as seções do plano estão preenchidas.
         </div>
       </div>
 
@@ -176,7 +180,7 @@ function viewProfile() {
 
       <div v-if="health.explanations.length" class="dash-section">
         <details class="health-tips" open>
-          <summary>💡 Pontos a melhorar (top {{ health.explanations.length }})</summary>
+          <summary><Lightbulb :size="16" /> Pontos a melhorar (top {{ health.explanations.length }})</summary>
           <ul class="health-tip-list">
             <li v-for="(e, i) in health.explanations" :key="i">{{ e }}</li>
           </ul>
@@ -234,10 +238,10 @@ function viewProfile() {
 
       <!-- Alertas de coerência -->
       <div v-if="alerts.length" class="dash-section">
-        <h3>⚠ Pontos de Atenção</h3>
+        <h3><AlertTriangle :size="18" /> Pontos de Atenção</h3>
         <div class="alerts-block">
           <div v-for="(a, i) in alerts" :key="i" class="alert" :class="a.level">
-            <strong>{{ alertIcon[a.level] || '•' }}</strong> {{ a.msg }}
+            <component :is="alertIcon[a.level] || Dot" :size="16" class="alert__icon" /> {{ a.msg }}
           </div>
         </div>
       </div>
@@ -437,7 +441,7 @@ function viewProfile() {
             </div>
           </div>
           <div v-if="funAn.bottleneck" class="alert info funnel-bottleneck">
-            🔍 <strong>Gargalo:</strong> {{ funAn.bottleneck.stage }},
+            <Search :size="16" /> <strong>Gargalo:</strong> {{ funAn.bottleneck.stage }},
             {{ funAn.bottleneck.rate.toFixed(1) }}% de conversão.
           </div>
         </div>
@@ -541,7 +545,7 @@ function viewProfile() {
 
       <!-- Revisão IA do plano completo -->
       <div v-if="aiBackendUrl || plan.aiReview" class="dash-section ai-review-section">
-        <h3>🤖 Revisão com IA</h3>
+        <h3><Bot :size="18" /> Revisão com IA</h3>
 
         <div v-if="plan.aiReview" class="card ai-review">
           <p v-if="plan.aiReview.executiveSummary" class="ai-review__summary">
@@ -592,6 +596,19 @@ function viewProfile() {
 
 .dashboard-view {
   padding-bottom: t.$space-10;
+}
+
+h3 svg,
+summary svg,
+.health-gaps--done svg,
+.funnel-bottleneck svg,
+.gap-step__link svg {
+  vertical-align: -0.18em;
+}
+
+.alert__icon {
+  vertical-align: -0.18em;
+  flex: 0 0 auto;
 }
 
 .dash-section {

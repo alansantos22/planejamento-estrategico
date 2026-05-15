@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { usePlanStore } from '@/stores/plan'
 import { forecastProjection } from '@/lib/scoring'
 import { formatMoney } from '@/lib/formatters'
+import { AlertTriangle, X } from 'lucide-vue-next'
 import BaseField from '@/components/common/BaseField.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
 import BaseMoneyInput from '@/components/common/BaseMoneyInput.vue'
@@ -170,7 +171,7 @@ function onProductSelected(item) {
             <option value="">Selecione um produto…</option>
             <option v-for="opt in productOptions" :key="opt" :value="opt">{{ opt }}</option>
           </select>
-          <button class="btn-icon" title="Remover projeção" @click="removeProjection(i)">×</button>
+          <button class="btn-icon" aria-label="Remover projeção" title="Remover projeção" @click="removeProjection(i)"><X :size="16" /></button>
         </div>
 
         <div class="projection-card__billing">
@@ -326,7 +327,7 @@ function onProductSelected(item) {
         </div>
       </div>
       <div v-else class="alert warning">
-        ⚠ {{ isPerProduct
+        <AlertTriangle :size="16" /> {{ isPerProduct
           ? 'Adicione ao menos uma projeção com ticket e novos clientes/mês.'
           : 'Preencha o funil (ticket + clientes atuais) para projetar.' }}
       </div>

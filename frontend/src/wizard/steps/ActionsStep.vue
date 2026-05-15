@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { X } from 'lucide-vue-next'
 import { usePlanStore } from '@/stores/plan'
 import { iceScore } from '@/lib/scoring'
 import BaseField from '@/components/common/BaseField.vue'
@@ -35,7 +36,7 @@ function removeAction(i) {
       <h5>
         Ação #{{ i + 1 }}
         <BaseBadge variant="info">ICE {{ iceScore(a).toFixed(1) }}</BaseBadge>
-        <button class="btn-icon" @click="removeAction(i)">×</button>
+        <button class="btn-icon" aria-label="Remover ação" @click="removeAction(i)"><X :size="16" /></button>
       </h5>
       <FormGrid :cols="2">
         <BaseField label="O quê? (What)">

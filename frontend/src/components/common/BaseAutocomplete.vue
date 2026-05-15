@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
+import { X } from 'lucide-vue-next'
 
 const props = defineProps({
   modelValue: { type: [String, Number], default: '' },
@@ -164,7 +165,7 @@ const mainDisplay = computed(() => (otherMode.value ? props.otherLabel : props.m
         class="base-input is-md"
         @input="onOtherInput"
       />
-      <button type="button" class="ac-other__clear" title="Voltar à lista" @click="clearOther">×</button>
+      <button type="button" class="ac-other__clear" aria-label="Voltar à lista" title="Voltar à lista" @click="clearOther"><X :size="18" /></button>
     </div>
   </div>
 </template>
@@ -253,6 +254,9 @@ const mainDisplay = computed(() => (otherMode.value ? props.otherLabel : props.m
     right: 8px;
     top: 50%;
     transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: none;
     background: transparent;
     font-size: 20px;

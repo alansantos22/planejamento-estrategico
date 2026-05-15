@@ -1,4 +1,6 @@
 <script setup>
+import { X } from 'lucide-vue-next'
+
 defineProps({
   title: { type: String, default: '' },
   size: { type: String, default: 'md' }
@@ -18,7 +20,7 @@ function handleOverlay(e) {
           <slot name="header">
             <h3>{{ title }}</h3>
           </slot>
-          <button class="base-modal__close" aria-label="Fechar" @click="emit('close')">×</button>
+          <button class="base-modal__close" aria-label="Fechar" @click="emit('close')"><X :size="20" /></button>
         </header>
         <div class="base-modal__body">
           <slot />
@@ -78,6 +80,9 @@ function handleOverlay(e) {
 
   &__close {
     @include t.reset-button;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-size: t.$font-size-2xl;
     line-height: 1;
     color: t.$color-text-light;

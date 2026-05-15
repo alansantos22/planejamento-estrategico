@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { Bot, ArrowRight } from 'lucide-vue-next'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseSwitch from '@/components/common/BaseSwitch.vue'
 import { usePlanStore } from '@/stores/plan'
@@ -55,7 +56,7 @@ function start() {
 
       <div class="mode-switch mode-switch--ai">
         <div>
-          <h3>🤖 Assistente de IA</h3>
+          <h3><Bot :size="18" /> Assistente de IA</h3>
           <p class="muted">
             Habilita botões de IA no wizard para sugerir personas, SWOT, concorrentes,
             <strong>cliente ideal + mudanças na empresa</strong> e mais.
@@ -64,7 +65,7 @@ function start() {
         <BaseSwitch v-model="aiAssistant" />
       </div>
 
-      <BaseButton variant="primary" size="lg" @click="start">Começar agora →</BaseButton>
+      <BaseButton variant="primary" size="lg" @click="start">Começar agora <ArrowRight :size="20" /></BaseButton>
 
       <div class="features">
         <div v-for="f in features" :key="f.title" class="feature">
@@ -122,6 +123,8 @@ function start() {
   h3 {
     margin: 0 0 t.$space-1;
     font-size: t.$font-size-lg;
+
+    svg { vertical-align: -0.16em; }
   }
 
   p {

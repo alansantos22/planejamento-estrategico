@@ -161,6 +161,9 @@ label.field,
 }
 
 .btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: 1px solid c.$color-border;
   border-radius: s.$radius-sm;
@@ -257,6 +260,8 @@ label.field,
   font-weight: f.$font-weight-semi;
 
   button {
+    display: inline-flex;
+    align-items: center;
     background: none;
     border: none;
     color: c.$color-primary;

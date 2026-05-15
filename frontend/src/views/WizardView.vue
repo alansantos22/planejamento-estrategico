@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlanStore } from '@/stores/plan'
 import { filteredSteps } from '@/wizard/steps'
+import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
 import BaseButton from '@/components/common/BaseButton.vue'
 import ProgressBar from '@/components/common/ProgressBar.vue'
 
@@ -59,9 +60,9 @@ function next() {
       </div>
 
       <div class="wizard__actions">
-        <BaseButton variant="ghost" :disabled="stepIndex === 0" @click="prev">← Voltar</BaseButton>
+        <BaseButton variant="ghost" :disabled="stepIndex === 0" @click="prev"><ArrowLeft :size="16" /> Voltar</BaseButton>
         <BaseButton variant="primary" @click="next">
-          {{ isLast ? 'Ver Resumo →' : 'Continuar →' }}
+          {{ isLast ? 'Ver Resumo' : 'Continuar' }} <ArrowRight :size="16" />
         </BaseButton>
       </div>
     </div>

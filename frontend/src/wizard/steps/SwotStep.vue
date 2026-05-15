@@ -1,4 +1,5 @@
 <script setup>
+import { X } from 'lucide-vue-next'
 import { usePlanStore } from '@/stores/plan'
 import HelpBox from '@/components/common/HelpBox.vue'
 import AiHelperButton from '@/components/ai/AiHelperButton.vue'
@@ -70,7 +71,7 @@ const QUADRANTS = [
                   @input="save"
                 />
               </div>
-              <button class="item-card__remove" aria-label="Remover" @click="removeItem(swot[q.key], i)">×</button>
+              <button class="item-card__remove" aria-label="Remover" @click="removeItem(swot[q.key], i)"><X :size="15" /></button>
             </div>
 
             <div class="item-card__footer">

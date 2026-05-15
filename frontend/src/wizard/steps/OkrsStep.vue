@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { Check, AlertTriangle, X } from 'lucide-vue-next'
 import { usePlanStore } from '@/stores/plan'
 import { isMeasurable } from '@/lib/scoring'
 import BaseField from '@/components/common/BaseField.vue'
@@ -44,7 +45,7 @@ function removeKr(okr, ki) {
     <div v-for="(okr, oi) in okrs" :key="oi" class="okr-card">
       <h5>
         Objetivo #{{ oi + 1 }}
-        <button class="btn-icon" @click="removeOkr(oi)">×</button>
+        <button class="btn-icon" aria-label="Remover objetivo" @click="removeOkr(oi)"><X :size="16" /></button>
       </h5>
       <BaseField>
         <template #label>
@@ -74,9 +75,11 @@ function removeKr(okr, ki) {
             class="measurable-tag"
             :class="isMeasurable(kr.text || '') ? 'ok' : 'no'"
           >
-            {{ isMeasurable(kr.text || '') ? '✓ Mensurável' : '⚠ Não mensurável' }}
+            <Check v-if="isMeasurable(kr.text || '')" :size="13" />
+            <AlertTriangle v-else :size="13" />
+            {{ isMeasurable(kr.text || '') ? 'Mensurável' : 'Não mensurável' }}
           </span>
-          <button class="btn-icon" @click="removeKr(okr, ki)">×</button>
+          <button class="btn-icon" aria-label="Remover KR" @click="removeKr(okr, ki)"><X :size="16" /></button>
         </div>
       </div>
       <button class="btn-add" @click="addKr(okr)">+ Adicionar Resultado-Chave (KR)</button>
@@ -97,5 +100,11 @@ function removeKr(okr, ki) {
   font-size: t.$font-size-sm;
   font-weight: t.$font-weight-semi;
   color: t.$color-text;
+}
+
+.measurable-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 </style>

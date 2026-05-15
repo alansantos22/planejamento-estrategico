@@ -6,6 +6,7 @@ import BaseSelect from '@/components/common/BaseSelect.vue'
 import BaseMoneyInput from '@/components/common/BaseMoneyInput.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import InfoTooltip from '@/components/common/InfoTooltip.vue'
+import { AlertTriangle, X } from 'lucide-vue-next'
 
 const props = defineProps({
   offering: { type: Object, required: true }
@@ -333,7 +334,7 @@ onBeforeUnmount(() => { if (autoSaveTimer) clearTimeout(autoSaveTimer) })
             :disabled="currentCosts.length <= 1"
             aria-label="Remover custo"
             @click="removeCost(i)"
-          >×</BaseButton>
+          ><X :size="16" /></BaseButton>
         </div>
         <BaseButton variant="add" size="sm" @click="addCost">+ Adicionar custo</BaseButton>
       </div>
@@ -408,10 +409,10 @@ onBeforeUnmount(() => { if (autoSaveTimer) clearTimeout(autoSaveTimer) })
       </div>
 
       <div v-if="sharedForAll && effectivePrice <= 0" class="alert warning" style="margin-top:12px">
-        ⚠ Defina o preço de venda para calcular margem e markup.
+        <AlertTriangle :size="16" /> Defina o preço de venda para calcular margem e markup.
       </div>
       <div v-else-if="sharedForAll && grossProfit < 0" class="alert danger" style="margin-top:12px">
-        ⚠ Custo total maior que o preço — você está operando no prejuízo.
+        <AlertTriangle :size="16" /> Custo total maior que o preço — você está operando no prejuízo.
       </div>
     </div>
 

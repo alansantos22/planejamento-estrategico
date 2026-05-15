@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { X } from 'lucide-vue-next'
 import { usePlanStore } from '@/stores/plan'
 import { icpFitScore } from '@/lib/scoring'
 import BaseField from '@/components/common/BaseField.vue'
@@ -71,7 +72,7 @@ function setPrimary(i) {
           <BaseBadge :variant="icpFitScore(p).color">ICP Fit {{ icpFitScore(p).score.toFixed(1) }}/10</BaseBadge>
           <span class="muted" style="font-size:12px">{{ icpFitScore(p).label }}</span>
         </div>
-        <button class="btn-icon" @click="removePersona(i)">×</button>
+        <button class="btn-icon" aria-label="Remover persona" @click="removePersona(i)"><X :size="16" /></button>
       </div>
 
       <FormGrid :cols="2">

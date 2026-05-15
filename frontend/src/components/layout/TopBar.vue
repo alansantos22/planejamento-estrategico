@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { Sun, Moon } from 'lucide-vue-next'
 import BaseButton from '@/components/common/BaseButton.vue'
 import { useThemeStore } from '@/stores/theme'
 
@@ -37,7 +38,8 @@ function onFileChange(e) {
           :title="theme.isDark ? 'Tema claro' : 'Tema escuro'"
           @click="theme.toggle()"
         >
-          <span aria-hidden="true">{{ theme.isDark ? '☀' : '🌙' }}</span>
+          <Sun v-if="theme.isDark" :size="18" aria-hidden="true" />
+          <Moon v-else :size="18" aria-hidden="true" />
         </button>
         <input ref="fileInput" type="file" accept="application/json" hidden @change="onFileChange" />
       </nav>

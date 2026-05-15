@@ -13,6 +13,7 @@ import FormGrid from '@/components/common/FormGrid.vue'
 import HelpBox from '@/components/common/HelpBox.vue'
 import InfoTooltip from '@/components/common/InfoTooltip.vue'
 import CostCalculatorModal from '@/components/product/CostCalculatorModal.vue'
+import { Calculator, AlertTriangle, X } from 'lucide-vue-next'
 
 const TYPE_OPTIONS = [
   { value: '', label: 'Selecione...' },
@@ -153,7 +154,7 @@ function tiersPctSum(o) {
     </HelpBox>
 
     <div v-for="(o, i) in p.offerings" :key="i" class="offering-card">
-      <h5>Oferta #{{ i + 1 }} <BaseButton variant="icon" aria-label="Remover oferta" @click="removeOffering(i)">×</BaseButton></h5>
+      <h5>Oferta #{{ i + 1 }} <BaseButton variant="icon" aria-label="Remover oferta" @click="removeOffering(i)"><X :size="16" /></BaseButton></h5>
       <FormGrid :cols="2">
         <BaseField label="Nome da oferta" :span="2">
           <BaseInput v-model="o.name" placeholder="Ex: Plano Pro / Consultoria mensal" @update:model-value="save" />
@@ -271,7 +272,7 @@ function tiersPctSum(o) {
                   :disabled="(o.pricingTiers || []).length <= 1"
                   aria-label="Remover plano"
                   @click="removeTier(o, ti)"
-                >×</BaseButton>
+                ><X :size="16" /></BaseButton>
               </div>
             </div>
             <div v-if="(o.pricingTiers || []).length > 1" class="pricing-tiers__pct-sum">
@@ -310,7 +311,7 @@ function tiersPctSum(o) {
               title="Calcular margem a partir dos custos"
               aria-label="Calcular margem"
               @click="openCalculator(i)"
-            >🧮</button>
+            ><Calculator :size="16" /></button>
           </div>
         </BaseField>
         <BaseField>
@@ -326,7 +327,7 @@ function tiersPctSum(o) {
               title="Calcular markup a partir dos custos"
               aria-label="Calcular markup"
               @click="openCalculator(i)"
-            >🧮</BaseButton>
+            ><Calculator :size="16" /></BaseButton>
           </div>
         </BaseField>
       </FormGrid>
@@ -361,7 +362,7 @@ function tiersPctSum(o) {
         </div>
       </div>
       <div v-if="totalRev !== 100 || totalEff !== 100" class="alert warning">
-        ⚠ Soma de %receita = {{ totalRev }}, %esforço = {{ totalEff }}. O ideal é 100 cada.
+        <AlertTriangle :size="16" /> Soma de %receita = {{ totalRev }}, %esforço = {{ totalEff }}. O ideal é 100 cada.
       </div>
       <BaseField label="Justificativa do foco" style="margin-top:14px">
         <BaseTextarea v-model="p.focusReasoning" placeholder="Por que este é o produto-foco? Quais critérios pesaram?" @update:model-value="save" />
@@ -550,6 +551,9 @@ function tiersPctSum(o) {
 }
 
 .btn-calc.btn-calc {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0 t.$space-3;
   background: t.$color-bg-soft;
   border: 1px solid t.$color-border;

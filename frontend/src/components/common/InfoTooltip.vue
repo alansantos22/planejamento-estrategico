@@ -1,4 +1,6 @@
 <script setup>
+import { Info } from 'lucide-vue-next'
+
 defineProps({
   text: { type: String, default: '' },
   placement: { type: String, default: 'top' } // top | bottom
@@ -7,7 +9,7 @@ defineProps({
 
 <template>
   <span class="info-tooltip" :class="`is-${placement}`" tabindex="0" :aria-label="text">
-    <span class="info-tooltip__icon" aria-hidden="true">i</span>
+    <span class="info-tooltip__icon" aria-hidden="true"><Info :size="11" /></span>
     <span class="info-tooltip__bubble" role="tooltip">
       <slot>{{ text }}</slot>
     </span>
@@ -34,10 +36,6 @@ defineProps({
     background: t.$color-bg-soft;
     border: 1px solid t.$color-border;
     color: t.$color-text-light;
-    font-size: 11px;
-    font-weight: 700;
-    font-style: italic;
-    font-family: serif;
     line-height: 1;
     cursor: help;
     transition: background 0.15s, color 0.15s, border-color 0.15s;

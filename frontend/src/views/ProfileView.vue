@@ -15,6 +15,7 @@ import {
 } from '@/lib/scoring'
 import { formatMoney } from '@/lib/formatters'
 import { generateLogo } from '@/lib/logoGen'
+import { ArrowLeft, Link2, Printer, Tag, Clock, Globe, Bot, Mail, Phone } from 'lucide-vue-next'
 import BaseButton from '@/components/common/BaseButton.vue'
 
 const route = useRoute()
@@ -184,20 +185,20 @@ function printProfile() {
 
     <div v-else-if="loadError" class="container profile-loading">
       <p class="muted">{{ loadError }}</p>
-      <BaseButton variant="ghost" @click="goBack">← Voltar</BaseButton>
+      <BaseButton variant="ghost" @click="goBack"><ArrowLeft :size="16" /> Voltar</BaseButton>
     </div>
 
     <div v-else-if="plan" class="container">
       <!-- Ações no topo (não imprimem) -->
       <div class="profile-actions">
         <BaseButton variant="ghost" @click="goBack">
-          {{ isPublic ? '← Voltar' : '← Editar plano' }}
+          <ArrowLeft :size="16" /> {{ isPublic ? 'Voltar' : 'Editar plano' }}
         </BaseButton>
         <div class="profile-actions__right">
           <BaseButton v-if="!isPublic" variant="ghost" :disabled="sharing" @click="shareProfile">
-            🔗 {{ shareCopied ? 'Link copiado!' : sharing ? 'Gerando…' : 'Compartilhar perfil' }}
+            <Link2 :size="16" /> {{ shareCopied ? 'Link copiado!' : sharing ? 'Gerando…' : 'Compartilhar perfil' }}
           </BaseButton>
-          <BaseButton variant="primary" @click="printProfile">🖨️ Imprimir / PDF</BaseButton>
+          <BaseButton variant="primary" @click="printProfile"><Printer :size="16" /> Imprimir / PDF</BaseButton>
         </div>
       </div>
 
@@ -210,9 +211,9 @@ function printProfile() {
           <h1 class="profile-header__name">{{ companyName }}</h1>
           <p v-if="tagline" class="profile-header__tagline">{{ tagline }}</p>
           <div class="profile-header__meta">
-            <span v-if="company.segment">🏷 {{ company.segment }}</span>
-            <span v-if="ageLabel">⏱ {{ ageLabel }}</span>
-            <span v-if="company.region">🌐 {{ company.region }}</span>
+            <span v-if="company.segment"><Tag :size="14" /> {{ company.segment }}</span>
+            <span v-if="ageLabel"><Clock :size="14" /> {{ ageLabel }}</span>
+            <span v-if="company.region"><Globe :size="14" /> {{ company.region }}</span>
           </div>
         </div>
         <div v-if="health" class="profile-header__score" :class="`grade-${health.gradeColor}`">
@@ -324,7 +325,7 @@ function printProfile() {
 
           <!-- Revisão com IA (apenas preview interno) -->
           <section v-if="!isPublic && aiReview" class="profile-card">
-            <h3>🤖 Revisão com IA</h3>
+            <h3><Bot :size="18" /> Revisão com IA</h3>
             <p v-if="aiReview.executiveSummary">{{ aiReview.executiveSummary }}</p>
             <p v-if="aiReview.topPriority" class="ai-priority">
               <strong>Prioridade máxima:</strong> {{ aiReview.topPriority }}
@@ -348,8 +349,8 @@ function printProfile() {
         <aside class="profile-side">
           <section v-if="contact.email || contact.phone" class="profile-card profile-card--side">
             <h4>Contato</h4>
-            <p v-if="contact.email">✉ {{ contact.email }}</p>
-            <p v-if="contact.phone">📱 {{ contact.phone }}</p>
+            <p v-if="contact.email"><Mail :size="14" /> {{ contact.email }}</p>
+            <p v-if="contact.phone"><Phone :size="14" /> {{ contact.phone }}</p>
           </section>
 
           <section
@@ -398,6 +399,13 @@ function printProfile() {
 
 .profile-view {
   padding-block: t.$space-5 t.$space-10;
+}
+
+h3 svg,
+h4 svg,
+.profile-header__meta svg,
+.profile-card--side p svg {
+  vertical-align: -0.16em;
 }
 
 .profile-loading {

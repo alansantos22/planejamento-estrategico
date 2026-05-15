@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { usePlanStore } from '@/stores/plan'
 import { funnelAnalysis } from '@/lib/scoring'
 import { formatMoney } from '@/lib/formatters'
+import { AlertTriangle, Search, X } from 'lucide-vue-next'
 import BaseField from '@/components/common/BaseField.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
 import BaseMoneyInput from '@/components/common/BaseMoneyInput.vue'
@@ -227,7 +228,7 @@ function removeSubChannel(sub, i) { sub.channels.splice(i, 1); save() }
           <input class="input" type="number" min="0" max="100" v-model="s.conversionToNext" placeholder="% → próxima" @input="onStageChange(f.stages, i)" />
         </template>
         <div v-else class="muted" style="align-self:center">(final)</div>
-        <button class="btn-icon" @click="removeStage(i)">×</button>
+        <button class="btn-icon" aria-label="Remover etapa" @click="removeStage(i)"><X :size="16" /></button>
       </div>
       <button class="btn-add" @click="addStage">+ Adicionar etapa</button>
     </div>
@@ -239,7 +240,7 @@ function removeSubChannel(sub, i) { sub.channels.splice(i, 1); save() }
         <input class="input" v-model="ch.name" placeholder="Ex: Google Ads / Indicação / Outbound" @input="save" />
         <input class="input" type="number" v-model="ch.mixPct" placeholder="% do mix" @input="save" />
         <input class="input" type="number" v-model="ch.costPerLead" placeholder="R$ / lead" @input="save" />
-        <button class="btn-icon" @click="removeChannel(i)">×</button>
+        <button class="btn-icon" aria-label="Remover canal" @click="removeChannel(i)"><X :size="16" /></button>
       </div>
       <button class="btn-add" @click="addChannel">+ Adicionar canal</button>
     </div>
@@ -270,7 +271,7 @@ function removeSubChannel(sub, i) { sub.channels.splice(i, 1); save() }
           <span v-if="sub.funnelRole" class="role-tag" :data-role="sub.funnelRole">
             {{ ROLE_LABEL[sub.funnelRole] }}
           </span>
-          <button class="btn-icon" @click="removeSubFunnel(si)" title="Remover sub-funil">×</button>
+          <button class="btn-icon" aria-label="Remover sub-funil" @click="removeSubFunnel(si)" title="Remover sub-funil"><X :size="16" /></button>
         </div>
 
         <div v-if="sub.funnelRoleReason" class="muted sub-funnel__reason">
@@ -300,7 +301,7 @@ function removeSubChannel(sub, i) { sub.channels.splice(i, 1); save() }
           </p>
         </div>
         <div v-else-if="sub.productName" class="alert warning" style="font-size:12px; padding: 6px 10px; margin-top: 8px">
-          ⚠ "{{ sub.productName }}" não está cadastrado no passo Produto.
+          <AlertTriangle :size="14" /> "{{ sub.productName }}" não está cadastrado no passo Produto.
         </div>
 
         <FormGrid :cols="2" style="margin-top:8px">
@@ -355,7 +356,7 @@ function removeSubChannel(sub, i) { sub.channels.splice(i, 1); save() }
               @input="onStageChange(sub.stages, i)"
             />
             <div v-else class="muted" style="align-self:center">(final)</div>
-            <button class="btn-icon" @click="removeSubStage(sub, i)">×</button>
+            <button class="btn-icon" aria-label="Remover etapa" @click="removeSubStage(sub, i)"><X :size="16" /></button>
           </div>
           <button class="btn-add" @click="addSubStage(sub)">+ Adicionar etapa</button>
         </div>
@@ -366,7 +367,7 @@ function removeSubChannel(sub, i) { sub.channels.splice(i, 1); save() }
             <input class="input" v-model="ch.name" placeholder="Ex: Meta Ads" @input="save" />
             <input class="input" type="number" v-model="ch.mixPct" placeholder="% do mix" @input="save" />
             <input class="input" type="number" v-model="ch.costPerLead" placeholder="R$ / lead" @input="save" />
-            <button class="btn-icon" @click="removeSubChannel(sub, i)">×</button>
+            <button class="btn-icon" aria-label="Remover canal" @click="removeSubChannel(sub, i)"><X :size="16" /></button>
           </div>
           <button class="btn-add" @click="addSubChannel(sub)">+ Adicionar canal</button>
         </div>
@@ -406,11 +407,11 @@ function removeSubChannel(sub, i) { sub.channels.splice(i, 1); save() }
         </div>
       </template>
       <template v-else>
-        <div class="alert warning">⚠ Preencha as taxas de conversão para ver o cálculo reverso.</div>
+        <div class="alert warning"><AlertTriangle :size="16" /> Preencha as taxas de conversão para ver o cálculo reverso.</div>
         <p><strong>Clientes necessários:</strong> {{ analysis.neededClients }} / mês</p>
       </template>
       <div v-if="analysis.bottleneck" class="alert info" style="margin-top:14px">
-        🔍 <strong>Gargalo:</strong> {{ analysis.bottleneck.stage }}, apenas {{ analysis.bottleneck.rate.toFixed(1) }}% convertem.
+        <Search :size="16" /> <strong>Gargalo:</strong> {{ analysis.bottleneck.stage }}, apenas {{ analysis.bottleneck.rate.toFixed(1) }}% convertem.
       </div>
     </div>
   </div>

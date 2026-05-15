@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { X } from 'lucide-vue-next'
 import { usePlanStore } from '@/stores/plan'
 import { competitionAnalysis } from '@/lib/scoring'
 import HelpBox from '@/components/common/HelpBox.vue'
@@ -79,7 +80,7 @@ function compTotal(co) {
       <h4 style="margin:0 0 10px">Critérios de avaliação</h4>
       <div class="chip-list">
         <span v-for="(cr, i) in c.criteria" :key="i" class="chip">
-          {{ cr }} <button :data-del="i" @click="removeCriterion(i)">×</button>
+          {{ cr }} <button :data-del="i" aria-label="Remover critério" @click="removeCriterion(i)"><X :size="12" /></button>
         </span>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px">
@@ -120,7 +121,7 @@ function compTotal(co) {
                 <input class="num" type="number" min="1" max="5" :value="compScore(co, cr)" @input="setCompScore(co, cr, $event.target.value)" />
               </td>
               <td class="total">{{ compTotal(co) || 'n/d' }}</td>
-              <td><button class="btn-icon" @click="removeCompetitor(i)">×</button></td>
+              <td><button class="btn-icon" aria-label="Remover concorrente" @click="removeCompetitor(i)"><X :size="16" /></button></td>
             </tr>
           </tbody>
         </table>
