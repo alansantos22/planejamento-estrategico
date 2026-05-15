@@ -14,6 +14,8 @@ import { formatMoney, ishikawaCauseLabel } from '@/lib/formatters'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
 import AiHelperButton from '@/components/ai/AiHelperButton.vue'
+import PartnerTip from '@/components/common/PartnerTip.vue'
+import { FOORGE, MENTORIA_IMOBILIARIAS, isImobiliaria } from '@/lib/partners'
 import { throttleClick } from '@/lib/debounce'
 import {
   ArrowLeft, ArrowRight, Eye, Printer, ClipboardList, CheckCircle2,
@@ -74,6 +76,7 @@ const ishikawaEntries = computed(() =>
 )
 
 const aiBackendUrl = computed(() => store.aiBackendUrl)
+const isImob = computed(() => isImobiliaria(plan.company?.segment))
 
 const AI_TYPE_LABEL = {
   inconsistencia: 'Inconsistência',
@@ -184,6 +187,15 @@ function viewProfile() {
           <ul class="health-tip-list">
             <li v-for="(e, i) in health.explanations" :key="i">{{ e }}</li>
           </ul>
+          <PartnerTip
+            v-if="isImob"
+            :href="MENTORIA_IMOBILIARIAS.whatsapp"
+            cta="Falar sobre a mentoria"
+          >
+            Diagnosticar é o começo — o difícil é executar. Se você quer ajuda para
+            tirar esse plano do papel no mercado imobiliário, a mentoria da Unli para
+            imobiliárias acompanha de perto cada etapa.
+          </PartnerTip>
         </details>
       </div>
 
@@ -444,6 +456,11 @@ function viewProfile() {
             <Search :size="16" /> <strong>Gargalo:</strong> {{ funAn.bottleneck.stage }},
             {{ funAn.bottleneck.rate.toFixed(1) }}% de conversão.
           </div>
+          <PartnerTip v-if="funAn.bottleneck" :href="FOORGE.whatsapp" cta="Ver o Foorge">
+            Gargalos de conversão quase sempre são tempo de resposta no atendimento:
+            o lead esfria antes do contato e cai pra concorrência. Um atendente de IA
+            respondendo na hora no WhatsApp, 24h, costuma destravar essa etapa.
+          </PartnerTip>
         </div>
       </div>
 

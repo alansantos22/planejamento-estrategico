@@ -11,6 +11,8 @@ import BaseSwitch from '@/components/common/BaseSwitch.vue'
 import FormGrid from '@/components/common/FormGrid.vue'
 import HelpBox from '@/components/common/HelpBox.vue'
 import AiHelperButton from '@/components/ai/AiHelperButton.vue'
+import PartnerTip from '@/components/common/PartnerTip.vue'
+import { FOORGE } from '@/lib/partners'
 
 const store = usePlanStore()
 const f = store.plan.funnel
@@ -243,6 +245,12 @@ function removeSubChannel(sub, i) { sub.channels.splice(i, 1); save() }
         <button class="btn-icon" aria-label="Remover canal" @click="removeChannel(i)"><X :size="16" /></button>
       </div>
       <button class="btn-add" @click="addChannel">+ Adicionar canal</button>
+      <PartnerTip :href="FOORGE.whatsapp" cta="Conhecer o Foorge">
+        Social media e mídia paga costumam ser o canal mais caro da lista — entre
+        agência, tráfego e o tempo gasto produzindo conteúdo. Uma forma de baixar
+        esse custo é automatizar o Instagram e as respostas no WhatsApp com IA, em
+        vez de terceirizar.
+      </PartnerTip>
     </div>
 
     <!-- Sub-funis por produto -->
