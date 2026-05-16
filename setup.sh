@@ -86,7 +86,9 @@ read -rp "Confirma e inicia a instalação? [s/N] " CONFIRM
 [[ "$CONFIRM" =~ ^[sSyY]$ ]] || die "Cancelado pelo usuário."
 
 # segredos gerados automaticamente
-DB_PASSWORD="$(openssl rand -hex 16)"
+# o sufixo "Aa1_" garante maiúscula + minúscula + dígito + caractere especial,
+# pra senha passar na política validate_password do MySQL, se estiver ativa.
+DB_PASSWORD="$(openssl rand -hex 16)Aa1_"
 ENCRYPTION_KEY="$(openssl rand -hex 32)"
 HMAC_KEY="$(openssl rand -hex 32)"
 LEADS_ADMIN_TOKEN="$(openssl rand -hex 16)"
