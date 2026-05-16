@@ -185,7 +185,12 @@ if [ -d "$APP_DIR/.git" ]; then
   as_deploy "cd '$APP_DIR' && git fetch origin main && git reset --hard origin/main"
   ok "Repositório já existia — atualizado."
 else
+  # cria o diretório vazio e dá a posse ao usuário ANTES do clone — assim o
+  # 'git clone' (que roda como esse usuário) consegue escrever. Só mexemos
+  # nesta pasta, nunca em todo o /var/www (que pode ter outros projetos).
   rm -rf "$APP_DIR"
+  mkdir -p "$APP_DIR"
+  chown "$DEPLOY_USER:$DEPLOY_USER" "$APP_DIR"
   as_deploy "git clone '$REPO_URL' '$APP_DIR'"
   ok "Repositório clonado em $APP_DIR."
 fi
