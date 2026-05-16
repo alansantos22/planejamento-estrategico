@@ -5,7 +5,7 @@
 #
 # Faz, de uma vez só, os Passos 1 a 15 do DEPLOY.md:
 #   - atualiza o sistema e configura o firewall
-#   - cria o usuário "deploy" (o app NUNCA roda como root)
+#   - cria o usuário do sistema (o app NUNCA roda como root)
 #   - instala Node 20, MySQL, Nginx, Git e Certbot
 #   - cria o banco e o usuário do MySQL
 #   - clona o repositório, gera as chaves de criptografia e escreve o .env
@@ -26,6 +26,7 @@ set -euo pipefail
 # ============================ CONFIGURAÇÃO ============================
 APP_DIR="/var/www/planejamento-estrategico"
 DEFAULT_REPO="https://github.com/alansantos22/planejamento-estrategico.git"
+DEFAULT_DEPLOY_USER="planejamento"
 DB_NAME="planejamento_estrategico"
 DB_USER="planejamento"
 SERVICE="planejamento"
@@ -41,16 +42,23 @@ die()  { echo "${C_ERR}✖ $*${C_OFF}" >&2; exit 1; }
 # --- precisa ser root --------------------------------------------------
 [ "$(id -u)" -eq 0 ] || die "Rode este script como root: sudo bash setup.sh"
 
-# helper: roda um comando como o usuário 'deploy'
-as_deploy() { sudo -u deploy bash -lc "$*"; }
+# helper: roda um comando como o usuário do deploy
+as_deploy() { sudo -u "$DEPLOY_USER" bash -lc "$*"; }
 
 # ======================================================================
 #  PERGUNTAS
 # ======================================================================
 log "Configuração inicial — responda as perguntas abaixo"
 
-read -rp "Domínio do site (ex.: seudominio.com): " DOMAIN
+read -rp "Domínio do site (ex.: seudominio.com ou planejamento.seudominio.com): " DOMAIN
 [ -n "$DOMAIN" ] || die "O domínio é obrigatório."
+
+read -rp "Servir também o www.${DOMAIN}? (responda N se for um subdomínio) [s/N] " ADD_WWW
+if [[ "$ADD_WWW" =~ ^[sSyY]$ ]]; then
+  WWW_DOMAIN="www.${DOMAIN}"
+else
+  WWW_DOMAIN=""
+fi
 
 read -rp "E-mail para o certificado HTTPS (avisos de expiração): " EMAIL
 [ -n "$EMAIL" ] || die "O e-mail é obrigatório."
@@ -58,17 +66,21 @@ read -rp "E-mail para o certificado HTTPS (avisos de expiração): " EMAIL
 read -rp "URL do repositório Git [$DEFAULT_REPO]: " REPO_URL
 REPO_URL="${REPO_URL:-$DEFAULT_REPO}"
 
-read -rsp "Senha para o novo usuário 'deploy' (pra você logar depois): " DEPLOY_PASS
+read -rp "Nome do usuário do sistema (logar/rodar o app) [$DEFAULT_DEPLOY_USER]: " DEPLOY_USER
+DEPLOY_USER="${DEPLOY_USER:-$DEFAULT_DEPLOY_USER}"
+
+read -rsp "Senha para o usuário '$DEPLOY_USER' (pra você logar depois): " DEPLOY_PASS
 echo
-[ -n "$DEPLOY_PASS" ] || die "A senha do usuário 'deploy' é obrigatória."
+[ -n "$DEPLOY_PASS" ] || die "A senha do usuário '$DEPLOY_USER' é obrigatória."
 
 read -rp "Chave da API do Gemini (Enter pra pular — só pros agentes de IA): " GEMINI_API_KEY
 
 echo
 echo "Resumo:"
-echo "  Domínio ........: $DOMAIN"
+echo "  Domínio ........: $DOMAIN${WWW_DOMAIN:+ (+ $WWW_DOMAIN)}"
 echo "  E-mail .........: $EMAIL"
 echo "  Repositório ....: $REPO_URL"
+echo "  Usuário sistema : $DEPLOY_USER"
 echo "  Gemini .........: $([ -n "$GEMINI_API_KEY" ] && echo 'configurada' || echo '(pulada)')"
 read -rp "Confirma e inicia a instalação? [s/N] " CONFIRM
 [[ "$CONFIRM" =~ ^[sSyY]$ ]] || die "Cancelado pelo usuário."
@@ -99,27 +111,27 @@ ufw --force enable     >/dev/null
 ok "Firewall ativo (SSH + HTTP/HTTPS liberados)."
 
 # ======================================================================
-#  2. USUÁRIO DEPLOY
+#  2. USUÁRIO DO SISTEMA
 # ======================================================================
-log "4/12 — Criando o usuário 'deploy'"
-if id deploy &>/dev/null; then
-  ok "Usuário 'deploy' já existe — mantendo."
+log "4/12 — Criando o usuário '$DEPLOY_USER'"
+if id "$DEPLOY_USER" &>/dev/null; then
+  ok "Usuário '$DEPLOY_USER' já existe — mantendo."
 else
-  adduser --disabled-password --gecos "" deploy
-  usermod -aG sudo deploy
-  ok "Usuário 'deploy' criado e adicionado ao grupo sudo."
+  adduser --disabled-password --gecos "" "$DEPLOY_USER"
+  usermod -aG sudo "$DEPLOY_USER"
+  ok "Usuário '$DEPLOY_USER' criado e adicionado ao grupo sudo."
 fi
 # define a senha informada
-echo "deploy:$DEPLOY_PASS" | chpasswd
-# copia as chaves SSH do root pro deploy (pra você logar com a mesma chave)
+echo "$DEPLOY_USER:$DEPLOY_PASS" | chpasswd
+# copia as chaves SSH do root pro usuário (pra você logar com a mesma chave)
 if [ -f /root/.ssh/authorized_keys ]; then
-  mkdir -p /home/deploy/.ssh
-  cp /root/.ssh/authorized_keys /home/deploy/.ssh/authorized_keys
-  chown -R deploy:deploy /home/deploy/.ssh
-  chmod 700 /home/deploy/.ssh
-  chmod 600 /home/deploy/.ssh/authorized_keys
+  mkdir -p "/home/$DEPLOY_USER/.ssh"
+  cp /root/.ssh/authorized_keys "/home/$DEPLOY_USER/.ssh/authorized_keys"
+  chown -R "$DEPLOY_USER:$DEPLOY_USER" "/home/$DEPLOY_USER/.ssh"
+  chmod 700 "/home/$DEPLOY_USER/.ssh"
+  chmod 600 "/home/$DEPLOY_USER/.ssh/authorized_keys"
 fi
-ok "Acesso do usuário 'deploy' configurado."
+ok "Acesso do usuário '$DEPLOY_USER' configurado."
 
 # ======================================================================
 #  3. NODE.JS 20
@@ -167,7 +179,7 @@ fi
 log "7/12 — Baixando o código do projeto"
 mkdir -p "$(dirname "$APP_DIR")"
 if [ -d "$APP_DIR/.git" ]; then
-  chown -R deploy:deploy "$APP_DIR"
+  chown -R "$DEPLOY_USER:$DEPLOY_USER" "$APP_DIR"
   as_deploy "cd '$APP_DIR' && git fetch origin main && git reset --hard origin/main"
   ok "Repositório já existia — atualizado."
 else
@@ -175,7 +187,7 @@ else
   as_deploy "git clone '$REPO_URL' '$APP_DIR'"
   ok "Repositório clonado em $APP_DIR."
 fi
-chown -R deploy:deploy "$APP_DIR"
+chown -R "$DEPLOY_USER:$DEPLOY_USER" "$APP_DIR"
 
 # ======================================================================
 #  7. BACKEND — .env, dependências, banco
@@ -186,7 +198,7 @@ cat > "$APP_DIR/server/.env" <<ENV
 GEMINI_API_KEY=${GEMINI_API_KEY}
 
 PORT=3001
-ALLOWED_ORIGINS=https://${DOMAIN},https://www.${DOMAIN}
+ALLOWED_ORIGINS=https://${DOMAIN}${WWW_DOMAIN:+,https://${WWW_DOMAIN}}
 LOG_LEVEL=info
 
 DB_HOST=127.0.0.1
@@ -205,7 +217,7 @@ ENCRYPTION_KEY_VERSION=1
 TRUST_PROXY=true
 NODE_ENV=production
 ENV
-chown deploy:deploy "$APP_DIR/server/.env"
+chown "$DEPLOY_USER:$DEPLOY_USER" "$APP_DIR/server/.env"
 chmod 600 "$APP_DIR/server/.env"
 
 as_deploy "cd '$APP_DIR/server' && npm ci --omit=dev"
@@ -223,7 +235,7 @@ After=network.target mysql.service
 
 [Service]
 Type=simple
-User=deploy
+User=${DEPLOY_USER}
 WorkingDirectory=${APP_DIR}/server
 ExecStart=/usr/bin/node src/server.js
 Restart=on-failure
@@ -242,7 +254,7 @@ ok "Serviço '${SERVICE}' ativo."
 # ======================================================================
 log "10/12 — Compilando o frontend"
 echo "VITE_BACKEND_URL=https://${DOMAIN}" > "$APP_DIR/frontend/.env.production"
-chown deploy:deploy "$APP_DIR/frontend/.env.production"
+chown "$DEPLOY_USER:$DEPLOY_USER" "$APP_DIR/frontend/.env.production"
 as_deploy "cd '$APP_DIR/frontend' && npm ci && npm run build"
 ok "Frontend compilado em frontend/dist."
 
@@ -253,7 +265,7 @@ log "11/12 — Configurando o Nginx"
 cat > /etc/nginx/sites-available/${SERVICE} <<NGINX
 server {
     listen 80;
-    server_name ${DOMAIN} www.${DOMAIN};
+    server_name ${DOMAIN}${WWW_DOMAIN:+ ${WWW_DOMAIN}};
 
     root ${APP_DIR}/frontend/dist;
     index index.html;
@@ -278,9 +290,9 @@ nginx -t
 systemctl reload nginx
 ok "Nginx configurado e recarregado."
 
-# regra de sudo: 'deploy' pode reiniciar os serviços sem senha (pro deploy.sh)
+# regra de sudo: o usuário pode reiniciar os serviços sem senha (pro deploy.sh)
 cat > /etc/sudoers.d/deploy-planejamento <<SUDO
-deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart ${SERVICE}, /usr/bin/systemctl reload nginx
+${DEPLOY_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl restart ${SERVICE}, /usr/bin/systemctl reload nginx
 SUDO
 chmod 440 /etc/sudoers.d/deploy-planejamento
 chmod +x "$APP_DIR/deploy.sh" 2>/dev/null || true
@@ -289,14 +301,16 @@ chmod +x "$APP_DIR/deploy.sh" 2>/dev/null || true
 #  11. HTTPS (Let's Encrypt)
 # ======================================================================
 log "12/12 — Emitindo o certificado HTTPS"
-if certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" \
+CERT_FLAGS=(-d "$DOMAIN")
+[ -n "$WWW_DOMAIN" ] && CERT_FLAGS+=(-d "$WWW_DOMAIN")
+if certbot --nginx "${CERT_FLAGS[@]}" \
      --non-interactive --agree-tos -m "$EMAIL" --redirect; then
   ok "HTTPS ativo."
   HTTPS_OK=1
 else
   warn "Certbot falhou (DNS ainda não aponta pra esta VPS?)."
   warn "O site funciona em HTTP por enquanto. Quando o DNS propagar, rode:"
-  warn "  sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN"
+  warn "  sudo certbot --nginx ${CERT_FLAGS[*]}"
   HTTPS_OK=0
 fi
 
@@ -312,14 +326,15 @@ echo "  Site .................: https://${DOMAIN}"
 echo "  Backend (interno) ....: http://127.0.0.1:3001"
 echo
 echo "${C_WARN}  GUARDE estes segredos (também estão em server/.env):${C_OFF}"
-echo "  Senha do usuário deploy : (a que você digitou)"
+echo "  Usuário do sistema .....: ${DEPLOY_USER}"
+echo "  Senha do usuário .......: (a que você digitou)"
 echo "  Senha do MySQL .........: ${DB_PASSWORD}"
 echo "  ENCRYPTION_KEY .........: ${ENCRYPTION_KEY}"
 echo "  HMAC_KEY ...............: ${HMAC_KEY}"
 echo "  LEADS_ADMIN_TOKEN ......: ${LEADS_ADMIN_TOKEN}"
 echo
 echo "  Próximos deploys (atualizações):"
-echo "    ssh deploy@<IP> ; cd ${APP_DIR} ; ./deploy.sh"
+echo "    ssh ${DEPLOY_USER}@<IP> ; cd ${APP_DIR} ; ./deploy.sh"
 echo
 [ "${HTTPS_OK}" -eq 0 ] && echo "${C_WARN}  ⚠ Configure o HTTPS quando o DNS propagar (veja acima).${C_OFF}"
 echo
