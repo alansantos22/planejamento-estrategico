@@ -96,17 +96,17 @@ LEADS_ADMIN_TOKEN="$(openssl rand -hex 16)"
 # ======================================================================
 #  1. SISTEMA + FIREWALL
 # ======================================================================
-log "1/12 — Atualizando o sistema"
+log "1/13 — Atualizando o sistema"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get upgrade -y
 ok "Sistema atualizado."
 
-log "2/12 — Instalando pacotes (git, nginx, mysql, certbot, curl)"
-apt-get install -y git nginx mysql-server certbot python3-certbot-nginx curl ufw
+log "2/13 — Instalando pacotes (git, nginx, mysql, certbot, curl, fail2ban)"
+apt-get install -y git nginx mysql-server certbot python3-certbot-nginx curl ufw fail2ban
 ok "Pacotes instalados."
 
-log "3/12 — Configurando o firewall (UFW)"
+log "3/13 — Configurando o firewall (UFW)"
 ufw allow OpenSSH      >/dev/null
 ufw allow 'Nginx Full' >/dev/null
 ufw --force enable     >/dev/null
@@ -115,7 +115,7 @@ ok "Firewall ativo (SSH + HTTP/HTTPS liberados)."
 # ======================================================================
 #  2. USUÁRIO DO SISTEMA
 # ======================================================================
-log "4/12 — Criando o usuário '$DEPLOY_USER'"
+log "4/13 — Criando o usuário '$DEPLOY_USER'"
 if id "$DEPLOY_USER" &>/dev/null; then
   ok "Usuário '$DEPLOY_USER' já existe — mantendo."
 else
@@ -138,7 +138,7 @@ ok "Acesso do usuário '$DEPLOY_USER' configurado."
 # ======================================================================
 #  3. NODE.JS 20
 # ======================================================================
-log "5/12 — Instalando o Node.js 20"
+log "5/13 — Instalando o Node.js 20"
 if command -v node &>/dev/null && [ "$(node -v | cut -d. -f1 | tr -d v)" -ge 20 ]; then
   ok "Node $(node -v) já instalado."
 else
@@ -150,7 +150,7 @@ fi
 # ======================================================================
 #  4. MYSQL — BANCO E USUÁRIO
 # ======================================================================
-log "6/12 — Configurando o MySQL (banco + usuário)"
+log "6/13 — Configurando o MySQL (banco + usuário)"
 systemctl enable --now mysql
 mysql <<SQL
 CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -178,7 +178,7 @@ fi
 # ======================================================================
 #  6. CLONAR O CÓDIGO
 # ======================================================================
-log "7/12 — Baixando o código do projeto"
+log "7/13 — Baixando o código do projeto"
 mkdir -p "$(dirname "$APP_DIR")"
 if [ -d "$APP_DIR/.git" ]; then
   chown -R "$DEPLOY_USER:$DEPLOY_USER" "$APP_DIR"
@@ -194,7 +194,7 @@ chown -R "$DEPLOY_USER:$DEPLOY_USER" "$APP_DIR"
 # ======================================================================
 #  7. BACKEND — .env, dependências, banco
 # ======================================================================
-log "8/12 — Configurando o backend"
+log "8/13 — Configurando o backend"
 cat > "$APP_DIR/server/.env" <<ENV
 # Gerado automaticamente pelo setup.sh
 GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -229,7 +229,7 @@ ok "Backend configurado e tabelas criadas."
 # ======================================================================
 #  8. SERVIÇO SYSTEMD
 # ======================================================================
-log "9/12 — Criando o serviço systemd"
+log "9/13 — Criando o serviço systemd"
 cat > /etc/systemd/system/${SERVICE}.service <<UNIT
 [Unit]
 Description=Planejamento Estrategico API
@@ -254,7 +254,7 @@ ok "Serviço '${SERVICE}' ativo."
 # ======================================================================
 #  9. FRONTEND — build
 # ======================================================================
-log "10/12 — Compilando o frontend"
+log "10/13 — Compilando o frontend"
 echo "VITE_BACKEND_URL=https://${DOMAIN}" > "$APP_DIR/frontend/.env.production"
 chown "$DEPLOY_USER:$DEPLOY_USER" "$APP_DIR/frontend/.env.production"
 as_deploy "cd '$APP_DIR/frontend' && npm ci && npm run build"
@@ -263,7 +263,7 @@ ok "Frontend compilado em frontend/dist."
 # ======================================================================
 #  10. NGINX
 # ======================================================================
-log "11/12 — Configurando o Nginx"
+log "11/13 — Configurando o Nginx"
 cat > /etc/nginx/sites-available/${SERVICE} <<NGINX
 server {
     listen 80;
@@ -302,7 +302,7 @@ chmod +x "$APP_DIR/deploy.sh" 2>/dev/null || true
 # ======================================================================
 #  11. HTTPS (Let's Encrypt)
 # ======================================================================
-log "12/12 — Emitindo o certificado HTTPS"
+log "12/13 — Emitindo o certificado HTTPS"
 CERT_FLAGS=(-d "$DOMAIN")
 [ -n "$WWW_DOMAIN" ] && CERT_FLAGS+=(-d "$WWW_DOMAIN")
 if certbot --nginx "${CERT_FLAGS[@]}" \
@@ -314,6 +314,36 @@ else
   warn "O site funciona em HTTP por enquanto. Quando o DNS propagar, rode:"
   warn "  sudo certbot --nginx ${CERT_FLAGS[*]}"
   HTTPS_OK=0
+fi
+
+# ======================================================================
+#  12. SEGURANÇA EXTRA (SSH + fail2ban)
+# ======================================================================
+log "13/13 — Reforçando a segurança (SSH + fail2ban)"
+
+# fail2ban — bane temporariamente IPs que erram a senha no SSH.
+# A jail 'sshd' já vem ativa por padrão; basta ligar o serviço.
+systemctl enable --now fail2ban
+ok "fail2ban ativo — protege o SSH contra força bruta."
+
+# Desativa o login SSH por senha (só chave). SÓ fazemos isso se o usuário
+# já tiver uma chave SSH instalada — senão você ficaria trancado pra fora.
+SSH_DROPIN="/etc/ssh/sshd_config.d/99-hardening.conf"
+if [ -s "/home/$DEPLOY_USER/.ssh/authorized_keys" ]; then
+  echo "# Gerado pelo setup.sh — login SSH apenas por chave" > "$SSH_DROPIN"
+  echo "PasswordAuthentication no" >> "$SSH_DROPIN"
+  if sshd -t; then
+    systemctl restart ssh
+    ok "Login SSH por senha desativado — só chave SSH a partir de agora."
+  else
+    rm -f "$SSH_DROPIN"
+    warn "Config do SSH ficou inválida — login por senha foi mantido."
+  fi
+else
+  warn "Nenhuma chave SSH encontrada para '$DEPLOY_USER' — login por senha MANTIDO"
+  warn "(desativar agora te trancaria pra fora da VPS)."
+  warn "Pra reforçar depois: do seu PC rode 'ssh-copy-id $DEPLOY_USER@<IP>' e então:"
+  warn "  echo 'PasswordAuthentication no' | sudo tee $SSH_DROPIN && sudo systemctl restart ssh"
 fi
 
 # ======================================================================
